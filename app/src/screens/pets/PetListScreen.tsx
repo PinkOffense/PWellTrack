@@ -4,12 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { petsApi, Pet } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import { ScreenContainer, Card, PetAvatar, EmptyState, GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'PetList'>;
 
 export function PetListScreen({ navigation }: Props) {
+  const { demoMode } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,6 +53,15 @@ export function PetListScreen({ navigation }: Props) {
       refreshing={refreshing}
       onRefresh={onRefresh}
     >
+      {demoMode && (
+        <View style={styles.demoBanner}>
+          <Ionicons name="information-circle" size={16} color={colors.white} />
+          <Text style={styles.demoText}>
+            Demo mode — no backend connected / Modo demo — sem backend
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
         <Text style={styles.title}>My Pets / Meus Pets</Text>
         <TouchableOpacity
@@ -160,5 +171,21 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  demoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primaryLight,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    borderRadius: borderRadius.md,
+  },
+  demoText: {
+    color: colors.white,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
   },
 });

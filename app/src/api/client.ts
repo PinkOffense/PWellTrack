@@ -2,6 +2,11 @@ import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
 
 let _token: string | null = null;
+let _demoMode = false;
+
+/** Returns true when the app is running without a backend (e.g. GitHub Pages). */
+export const isDemoMode = () => _demoMode;
+export const enableDemoMode = () => { _demoMode = true; };
 
 // Dynamically import storage depending on platform
 const getStorage = async () => {
