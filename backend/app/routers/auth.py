@@ -1,13 +1,15 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, get_current_user
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse
+from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,6 +42,48 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
     user = result.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_access_token(user.id)
+    return TokenResponse(access_token=token, user=UserOut.model_validate(user))
+
+
+@router.post("/google", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def google_auth(request: Request, data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticate via Google OAuth (Supabase). Creates user if not exists."""
+    # Verify the Supabase token
+    if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{settings.SUPABASE_URL}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {data.supabase_token}",
+                "apikey": settings.SUPABASE_ANON_KEY,
+            },
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    supabase_user = resp.json()
+    verified_email = supabase_user.get("email", "")
+    if verified_email.lower() != data.email.lower():
+        raise HTTPException(status_code=401, detail="Email mismatch")
+
+    # Find or create user
+    result = await db.execute(select(User).where(User.email == data.email.lower()))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        user = User(
+            name=data.name,
+            email=data.email.lower(),
+            password_hash="google-oauth",
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
     token = create_access_token(user.id)
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))

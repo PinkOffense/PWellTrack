@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { tokenStorage, authApi, enableDemoMode, isDemoMode } from '../api';
+import { supabase } from '../api/supabase';
 import { DEMO_USER } from '../api/demo-data';
 import { API_BASE_URL } from '../api/config';
 import type { User } from '../api/types';
@@ -12,6 +14,7 @@ interface AuthState {
   backendReachable: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   enterDemoMode: () => void;
   logout: () => Promise<void>;
 }
@@ -24,6 +27,7 @@ const AuthContext = createContext<AuthState>({
   backendReachable: false,
   login: async () => {},
   register: async () => {},
+  loginWithGoogle: async () => {},
   enterDemoMode: () => {},
   logout: async () => {},
 });
@@ -37,11 +41,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [demoMode, setDemoMode] = useState(false);
   const [backendReachable, setBackendReachable] = useState(false);
 
-  // On mount: check if backend is reachable, restore session if possible
+  // Sync Supabase Google user with our backend
+  const handleSupabaseUser = useCallback(async (supabaseToken: string, email: string, name: string) => {
+    const res = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, supabase_token: supabaseToken }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Google login failed' }));
+      throw new Error(err.detail);
+    }
+    const data = await res.json();
+    await tokenStorage.set(data.access_token);
+    setToken(data.access_token);
+    setUser(data.user);
+  }, []);
+
+  // On mount: check backend, restore session, listen for Supabase auth
   useEffect(() => {
     (async () => {
       try {
-        // Quick connectivity check (2s timeout)
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 2000);
         try {
@@ -49,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearTimeout(timer);
           setBackendReachable(true);
 
-          // Backend is reachable — try to restore stored session
+          // Try to restore stored session
           const stored = await tokenStorage.get();
           if (stored) {
             setToken(stored);
@@ -57,25 +77,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const me = await authApi.me();
               setUser(me);
             } catch {
-              // Token expired or invalid
               await tokenStorage.clear();
             }
           }
         } catch {
           clearTimeout(timer);
-          // Backend unreachable — enable demo mode flag but DON'T auto-login
-          // User will see login screen and can choose "Try Demo"
           setBackendReachable(false);
         }
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+
+    // Listen for Supabase auth state changes (Google OAuth callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const email = session.user.email || '';
+        const name =
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          email.split('@')[0];
+        try {
+          await handleSupabaseUser(session.access_token, email, name);
+        } catch (e) {
+          console.error('Failed to sync Google user with backend:', e);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [handleSupabaseUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     if (isDemoMode()) {
-      // In demo mode, any credentials work
       setToken('demo-token');
       setUser(DEMO_USER);
       return;
@@ -98,6 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    const redirectTo = Platform.OS === 'web'
+      ? window.location.origin + window.location.pathname
+      : undefined;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
   const enterDemoMode = useCallback(() => {
     enableDemoMode();
     setDemoMode(true);
@@ -107,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await tokenStorage.clear();
+    await supabase.auth.signOut().catch(() => {});
     setToken(null);
     setUser(null);
     setDemoMode(false);
@@ -115,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, token, loading, demoMode, backendReachable,
-      login, register, enterDemoMode, logout,
+      login, register, loginWithGoogle, enterDemoMode, logout,
     }}>
       {children}
     </AuthContext.Provider>

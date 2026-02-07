@@ -23,6 +23,12 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class GoogleAuthRequest(BaseModel):
+    email: EmailStr
+    name: str
+    supabase_token: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
