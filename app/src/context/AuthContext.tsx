@@ -135,13 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const redirectTo = Platform.OS === 'web'
-      ? window.location.origin + window.location.pathname
-      : undefined;
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: {
+        redirectTo: 'https://pinkoffense.github.io/PWellTrack',
+      },
     });
     if (error) throw new Error(error.message);
   }, []);
