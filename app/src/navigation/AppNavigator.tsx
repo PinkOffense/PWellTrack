@@ -1,6 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
+import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
@@ -22,6 +22,37 @@ import { SymptomFormScreen } from '../screens/symptoms/SymptomFormScreen';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
+
+// On web (GitHub Pages), the app is served under /PWellTrack/.
+// A linking config ensures React Navigation correctly interprets the URL
+// and doesn't get confused by the base path.
+const linking: LinkingOptions<{}> = {
+  prefixes: [
+    // production GitHub Pages URL
+    'https://pinkoffense.github.io/PWellTrack',
+    // localhost for development
+    'http://localhost:8081',
+  ],
+  config: {
+    screens: {
+      Home: '',
+      PetForm: 'pet-form',
+      PetDashboard: 'pet/:petId',
+      FeedingList: 'feeding',
+      FeedingForm: 'feeding/new',
+      WaterList: 'water',
+      WaterForm: 'water/new',
+      VaccineList: 'vaccines',
+      VaccineForm: 'vaccines/new',
+      MedicationList: 'medications',
+      MedicationForm: 'medications/new',
+      EventList: 'events',
+      EventForm: 'events/new',
+      SymptomList: 'symptoms',
+      SymptomForm: 'symptoms/new',
+    },
+  },
+};
 
 function MainStack() {
   return (
@@ -75,7 +106,7 @@ export function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={Platform.OS === 'web' ? linking : undefined}>
       {user ? <MainStack /> : <AuthStack />}
     </NavigationContainer>
   );
