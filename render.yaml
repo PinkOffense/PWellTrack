@@ -9,7 +9,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false  # Set manually to your Supabase PostgreSQL connection string
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
