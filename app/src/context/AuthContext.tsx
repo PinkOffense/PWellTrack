@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { tokenStorage, authApi, enableDemoMode, isDemoMode } from '../api';
-import { supabase } from '../api/supabase';
+import { supabase, OAUTH_REDIRECT_URL } from '../api/supabase';
 import { DEMO_USER } from '../api/demo-data';
 import { API_BASE_URL } from '../api/config';
 import type { User } from '../api/types';
@@ -135,13 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const redirectTo = Platform.OS === 'web'
-      ? window.location.origin + window.location.pathname
-      : undefined;
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: {
+        redirectTo: OAUTH_REDIRECT_URL,
+      },
     });
     if (error) throw new Error(error.message);
   }, []);
