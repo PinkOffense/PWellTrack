@@ -35,6 +35,8 @@ jobs:
       - name: Build web export
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
+          EXPO_PUBLIC_SUPABASE_URL: https://bbrlzpxctxwqclwudnuj.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
         run: npx expo export --platform web
 
       # SPA fallback — copy index.html to 404.html so GitHub Pages

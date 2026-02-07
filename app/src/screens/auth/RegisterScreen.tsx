@@ -95,7 +95,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 }
 
 export function RegisterScreen({ navigation }: Props) {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -228,6 +228,28 @@ export function RegisterScreen({ navigation }: Props) {
                 loading={loading}
                 variant="accent"
               />
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or / ou</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Sign-In button */}
+              <TouchableOpacity
+                style={styles.googleBtn}
+                onPress={() => {
+                  loginWithGoogle().catch((e: any) =>
+                    Alert.alert('Google Sign-In failed', e.message)
+                  );
+                }}
+              >
+                <Ionicons name="logo-google" size={20} color="#DB4437" />
+                <Text style={styles.googleBtnText}>
+                  Sign up with Google / Registar com Google
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Login link */}
@@ -379,6 +401,41 @@ const styles = StyleSheet.create({
   },
   eyeBtn: {
     padding: spacing.xs,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    marginHorizontal: spacing.md,
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+  },
+
+  // Google button
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    backgroundColor: colors.white,
+  },
+  googleBtnText: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    fontWeight: '600',
   },
 
   // Login link
