@@ -28,6 +28,8 @@ const Stack = createNativeStackNavigator();
 // and doesn't get confused by the base path.
 const linking: LinkingOptions<{}> = {
   prefixes: [
+    // production Netlify URL
+    'https://pwelltrack.netlify.app',
     // production GitHub Pages URL
     'https://pinkoffense.github.io/PWellTrack',
     // localhost for development
