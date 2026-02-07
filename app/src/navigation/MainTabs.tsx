@@ -1,12 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { PetListScreen } from '../screens/pets/PetListScreen';
+import { SettingsScreen } from '../screens/settings/SettingsScreen';
 import { colors, fontSize } from '../theme';
 
 const Tab = createBottomTabNavigator();
 
 export function MainTabs() {
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -34,6 +38,7 @@ export function MainTabs() {
           if (route.name === 'PetList') iconName = 'paw';
           else if (route.name === 'Today') iconName = 'today';
           else if (route.name === 'Health') iconName = 'heart';
+          else if (route.name === 'Settings') iconName = 'settings-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
@@ -41,7 +46,7 @@ export function MainTabs() {
       <Tab.Screen
         name="PetList"
         component={PetListScreen as any}
-        options={{ tabBarLabel: 'Pets' }}
+        options={{ tabBarLabel: t('tabs.pets') }}
       />
       <Tab.Screen
         name="Today"
@@ -52,6 +57,16 @@ export function MainTabs() {
         name="Health"
         component={PetListScreen as any}
         options={{ tabBarLabel: 'Health / Saude' }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen as any}
+        options={{
+          tabBarLabel: t('tabs.settings'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );

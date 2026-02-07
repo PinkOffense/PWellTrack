@@ -1,4 +1,4 @@
-import { api, isDemoMode } from './client';
+import { api, isDemoMode, uploadPetPhoto } from './client';
 import {
   DEMO_TOKEN, DEMO_USER, DEMO_PETS, DEMO_FEEDING, DEMO_WATER,
   DEMO_VACCINES, DEMO_MEDICATIONS, DEMO_EVENTS, DEMO_SYMPTOMS,
@@ -48,6 +48,10 @@ export const petsApi = {
     isDemoMode() ? Promise.resolve() : api.delete(`/pets/${id}`),
   today: (id: number): Promise<PetDashboard> =>
     isDemoMode() ? Promise.resolve(getDemoDashboard(id)) : api.get(`/pets/${id}/today`),
+  uploadPhoto: (petId: number, uri: string): Promise<Pet> =>
+    isDemoMode()
+      ? Promise.resolve({ ...DEMO_PETS[0], photo_url: uri } as Pet)
+      : uploadPetPhoto(petId, uri),
 };
 
 // ── Feeding ──

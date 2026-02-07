@@ -1,14 +1,28 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BarChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { petsApi, PetDashboard } from '../../api';
+import { petsApi, feedingApi, PetDashboard, FeedingLog } from '../../api';
 import { ScreenContainer, Card, ProgressRing, EmptyState } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'PetDashboard'>;
+
+const chartWidth = Dimensions.get('window').width - 64;
+
+const chartConfig = {
+  backgroundColor: '#fff',
+  backgroundGradientFrom: '#fff',
+  backgroundGradientTo: '#fff',
+  decimalPlaces: 0,
+  color: (opacity = 1) => `rgba(138, 107, 190, ${opacity})`,
+  labelColor: () => '#7B7394',
+  barPercentage: 0.6,
+  propsForBackgrounds: { rx: 6 },
+};
 
 interface QuickAction {
   label: string;
@@ -22,11 +36,16 @@ export function PetDashboardScreen({ navigation, route }: Props) {
   const [dashboard, setDashboard] = useState<PetDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [feedingLogs, setFeedingLogs] = useState<FeedingLog[]>([]);
 
   const fetch = useCallback(async () => {
     try {
-      const data = await petsApi.today(petId);
+      const [data, logs] = await Promise.all([
+        petsApi.today(petId),
+        feedingApi.list(petId),
+      ]);
       setDashboard(data);
+      setFeedingLogs(logs.slice(-7));
     } catch (e) {
       console.error(e);
     } finally {
@@ -93,6 +112,80 @@ export function PetDashboardScreen({ navigation, route }: Props) {
             />
           </View>
         </Card>
+      )}
+
+      {/* Feeding chart */}
+      {dashboard && feedingLogs.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Feeding Chart / Grafico Alimentacao</Text>
+          <Card style={styles.chartCard}>
+            <Text style={styles.chartSubtitle}>
+              Actual intake (g) — last {feedingLogs.length} entries
+            </Text>
+            <BarChart
+              data={{
+                labels: feedingLogs.map((l) => {
+                  const d = new Date(l.datetime);
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }),
+                datasets: [{ data: feedingLogs.map((l) => l.actual_amount_grams) }],
+              }}
+              width={chartWidth}
+              height={180}
+              yAxisSuffix="g"
+              yAxisLabel=""
+              chartConfig={chartConfig}
+              style={styles.chart}
+              fromZero
+            />
+            {dashboard.feeding.total_planned_grams != null &&
+              dashboard.feeding.total_planned_grams > 0 && (
+                <Text style={styles.chartFooter}>
+                  Planned today: {dashboard.feeding.total_planned_grams}g | Actual:{' '}
+                  {dashboard.feeding.total_actual_grams}g
+                </Text>
+              )}
+          </Card>
+        </>
+      )}
+
+      {/* Water progress */}
+      {dashboard && dashboard.water.daily_goal_ml != null && dashboard.water.daily_goal_ml > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Water Goal / Meta de Agua</Text>
+          <Card style={styles.chartCard}>
+            <View style={styles.waterHeader}>
+              <Text style={styles.waterLabel}>
+                {dashboard.water.total_ml} ml / {dashboard.water.daily_goal_ml} ml
+              </Text>
+              <Text style={styles.waterPercent}>
+                {Math.min(
+                  Math.round(
+                    (dashboard.water.total_ml / dashboard.water.daily_goal_ml!) * 100,
+                  ),
+                  100,
+                )}
+                %
+              </Text>
+            </View>
+            <View style={styles.waterBarBg}>
+              <View
+                style={[
+                  styles.waterBarFill,
+                  {
+                    width: `${Math.min(
+                      (dashboard.water.total_ml / dashboard.water.daily_goal_ml!) * 100,
+                      100,
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+            {dashboard.water.total_ml >= (dashboard.water.daily_goal_ml ?? 0) && (
+              <Text style={styles.waterGoalReached}>Goal reached!</Text>
+            )}
+          </Card>
+        </>
       )}
 
       {/* Quick actions grid */}
@@ -231,6 +324,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginTop: spacing.xs,
+  },
+  chartCard: {
+    padding: spacing.md,
+  },
+  chartSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  chart: {
+    borderRadius: borderRadius.sm,
+    marginLeft: -spacing.md,
+  },
+  chartFooter: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  waterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  waterLabel: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  waterPercent: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.info,
+  },
+  waterBarBg: {
+    height: 14,
+    backgroundColor: colors.infoLight,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
+  waterBarFill: {
+    height: '100%',
+    backgroundColor: colors.info,
+    borderRadius: borderRadius.full,
+  },
+  waterGoalReached: {
+    fontSize: fontSize.xs,
+    color: colors.success,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   eventCard: {
     padding: spacing.md,

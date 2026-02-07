@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { medicationsApi } from '../../api';
-import { ScreenContainer, Input, GradientButton } from '../../components';
+import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'MedicationForm'>;
@@ -46,8 +46,8 @@ export function MedicationFormScreen({ navigation, route }: Props) {
       <Input label="Name / Nome *" value={name} onChangeText={setName} placeholder="Amoxicillin..." />
       <Input label="Dosage / Dosagem *" value={dosage} onChangeText={setDosage} placeholder="5 mg" />
       <Input label="Frequency per day / Vezes ao dia *" value={frequency} onChangeText={setFrequency} placeholder="2" keyboardType="number-pad" />
-      <Input label="Start Date / Data Inicio *" value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
-      <Input label="End Date / Data Fim" value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
+      <DatePickerInput label="Start Date / Data Inicio" value={startDate} onChange={setStartDate} required />
+      <DatePickerInput label="End Date / Data Fim" value={endDate} onChange={setEndDate} />
       <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />
       <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} style={{ marginTop: spacing.md }} />
     </ScreenContainer>

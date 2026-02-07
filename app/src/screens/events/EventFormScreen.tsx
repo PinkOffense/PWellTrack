@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { eventsApi } from '../../api';
-import { ScreenContainer, Input, GradientButton } from '../../components';
+import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'EventForm'>;
@@ -62,7 +62,7 @@ export function EventFormScreen({ navigation, route }: Props) {
         ))}
       </View>
 
-      <Input label="Date & Time / Data e Hora *" value={datetimeStart} onChangeText={setDatetimeStart} placeholder="YYYY-MM-DDTHH:MM" />
+      <DatePickerInput label="Date & Time / Data e Hora" value={datetimeStart} onChange={setDatetimeStart} placeholder="YYYY-MM-DDTHH:MM" required />
       <Input label="Duration (min) / Duracao (min)" value={duration} onChangeText={setDuration} placeholder="30" keyboardType="number-pad" />
       <Input label="Location / Local" value={location} onChangeText={setLocation} placeholder="Pet Clinic..." />
       <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />

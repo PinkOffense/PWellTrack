@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { vaccinesApi } from '../../api';
-import { ScreenContainer, Input, GradientButton } from '../../components';
+import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'VaccineForm'>;
@@ -42,8 +42,8 @@ export function VaccineFormScreen({ navigation, route }: Props) {
     <ScreenContainer>
       <Text style={styles.title}>Add Vaccine / Adicionar Vacina</Text>
       <Input label="Vaccine Name / Nome *" value={name} onChangeText={setName} placeholder="Rabies, V8..." />
-      <Input label="Date Administered / Data *" value={dateAdministered} onChangeText={setDateAdministered} placeholder="YYYY-MM-DD" />
-      <Input label="Next Due Date / Proxima dose" value={nextDueDate} onChangeText={setNextDueDate} placeholder="YYYY-MM-DD" />
+      <DatePickerInput label="Date Administered / Data" value={dateAdministered} onChange={setDateAdministered} required />
+      <DatePickerInput label="Next Due Date / Proxima dose" value={nextDueDate} onChange={setNextDueDate} />
       <Input label="Clinic / Clinica" value={clinic} onChangeText={setClinic} placeholder="Pet Clinic..." />
       <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />
       <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} variant="success" style={{ marginTop: spacing.md }} />
