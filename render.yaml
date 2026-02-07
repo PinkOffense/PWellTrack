@@ -1,0 +1,24 @@
+databases:
+  - name: pwelltrack-db
+    plan: free
+    databaseName: pwelltrack
+    user: pwelltrack
+
+services:
+  - type: web
+    name: pwelltrack-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "./render-build.sh"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pwelltrack-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.12.3"

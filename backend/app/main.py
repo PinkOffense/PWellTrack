@@ -38,3 +38,8 @@ app.include_router(symptoms.router)
 @app.get("/")
 async def root():
     return {"message": "PWellTrack API is running", "docs": "/docs"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
