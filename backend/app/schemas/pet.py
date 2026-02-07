@@ -1,15 +1,15 @@
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PetCreate(BaseModel):
-    name: str
-    species: str
-    breed: Optional[str] = None
+    name: str = Field(min_length=1, max_length=120)
+    species: str = Field(min_length=1, max_length=50)
+    breed: Optional[str] = Field(default=None, max_length=120)
     date_of_birth: Optional[date] = None
-    sex: Optional[str] = None
-    weight_kg: Optional[float] = None
+    sex: Optional[str] = Field(default=None, max_length=20)
+    weight_kg: Optional[float] = Field(default=None, gt=0)
     photo_url: Optional[str] = None
     notes: Optional[str] = None
 

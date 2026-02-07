@@ -57,7 +57,6 @@ export function FeedingListScreen({ navigation, route }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
       fetchLogs();
     }, [fetchLogs]),
   );

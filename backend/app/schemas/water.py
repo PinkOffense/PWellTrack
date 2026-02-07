@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class WaterCreate(BaseModel):
-    datetime_: datetime = Field(alias="datetime", default=None)
-    amount_ml: float
-    daily_goal_ml: Optional[float] = None
+    datetime_: Optional[datetime] = Field(alias="datetime", default=None)
+    amount_ml: float = Field(gt=0)
+    daily_goal_ml: Optional[float] = Field(default=None, gt=0)
 
     model_config = {"populate_by_name": True}
 

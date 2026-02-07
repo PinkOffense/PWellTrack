@@ -24,12 +24,17 @@ export function EventFormScreen({ navigation, route }: Props) {
       Alert.alert('Oops!', 'Title and date are required / Titulo e data sao obrigatorios.');
       return;
     }
+    if (duration && (isNaN(Number(duration)) || Number(duration) <= 0)) {
+      Alert.alert('Oops!', 'Enter a valid duration / Digite uma duracao valida.');
+      return;
+    }
     setLoading(true);
     try {
+      const datetimeValue = datetimeStart.length === 10 ? `${datetimeStart}T00:00:00` : datetimeStart;
       await eventsApi.create(petId, {
         title,
         type,
-        datetime_start: datetimeStart,
+        datetime_start: datetimeValue,
         duration_minutes: duration ? parseInt(duration, 10) : undefined,
         location: location || undefined,
         notes: notes || undefined,
@@ -62,7 +67,7 @@ export function EventFormScreen({ navigation, route }: Props) {
         ))}
       </View>
 
-      <DatePickerInput label="Date & Time / Data e Hora" value={datetimeStart} onChange={setDatetimeStart} placeholder="YYYY-MM-DDTHH:MM" required />
+      <DatePickerInput label="Date & Time / Data e Hora" value={datetimeStart} onChange={setDatetimeStart} mode="datetime" required />
       <Input label="Duration (min) / Duracao (min)" value={duration} onChangeText={setDuration} placeholder="30" keyboardType="number-pad" />
       <Input label="Location / Local" value={location} onChangeText={setLocation} placeholder="Pet Clinic..." />
       <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />

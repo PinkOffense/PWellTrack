@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
-import { tokenStorage, authApi, enableDemoMode, isDemoMode } from '../api';
+import { tokenStorage, authApi, enableDemoMode, disableDemoMode, isDemoMode } from '../api';
 import { supabase, OAUTH_REDIRECT_URL } from '../api/supabase';
 import { DEMO_USER } from '../api/demo-data';
 import { API_BASE_URL } from '../api/config';
@@ -154,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await tokenStorage.clear();
     await supabase.auth.signOut().catch(() => {});
+    disableDemoMode();
     setToken(null);
     setUser(null);
     setDemoMode(false);

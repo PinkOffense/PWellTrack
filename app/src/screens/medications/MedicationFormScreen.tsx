@@ -22,6 +22,10 @@ export function MedicationFormScreen({ navigation, route }: Props) {
       Alert.alert('Oops!', 'Fill required fields / Preencha os campos obrigatorios.');
       return;
     }
+    if (isNaN(Number(frequency)) || Number(frequency) <= 0) {
+      Alert.alert('Oops!', 'Enter a valid frequency / Digite uma frequencia valida.');
+      return;
+    }
     setLoading(true);
     try {
       await medicationsApi.create(petId, {

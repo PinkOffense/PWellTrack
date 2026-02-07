@@ -216,7 +216,13 @@ export function LoginScreen({ navigation }: Props) {
                 secureTextEntry
               />
 
-              <TouchableOpacity style={styles.forgotBtn}>
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => Alert.alert(
+                  'Forgot Password / Esqueceu a Senha',
+                  'Please contact support to reset your password.\nContacte o suporte para redefinir sua senha.'
+                )}
+              >
                 <Text style={styles.forgotText}>Forgot password? / Esqueceu a senha?</Text>
               </TouchableOpacity>
 

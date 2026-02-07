@@ -92,7 +92,18 @@ async def upload_pet_photo(
     current_user: User = Depends(get_current_user),
 ):
     pet = await _get_pet_for_user(pet_id, current_user, db)
+
+    # Validate file type
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.content_type and file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="File must be an image (JPEG, PNG, GIF, or WebP)")
+
+    # Read with size limit (5 MB)
+    max_size = 5 * 1024 * 1024
     contents = await file.read()
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
+
     import base64
     b64 = base64.b64encode(contents).decode()
     ext = file.filename.split(".")[-1] if file.filename else "jpg"
@@ -127,7 +138,7 @@ async def pet_today(
     f_row = feeding_result.one()
     feeding_summary = FeedingSummary(
         total_actual_grams=float(f_row[0]),
-        total_planned_grams=float(f_row[1]) if f_row[1] else None,
+        total_planned_grams=float(f_row[1]) if f_row[1] is not None and f_row[2] > 0 else None,
         entries_count=int(f_row[2]),
     )
 

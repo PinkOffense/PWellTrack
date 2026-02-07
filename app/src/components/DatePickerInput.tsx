@@ -5,25 +5,29 @@ import { colors, spacing, borderRadius, fontSize } from '../theme';
 
 interface DatePickerInputProps {
   label: string;
-  value: string; // YYYY-MM-DD
+  value: string; // YYYY-MM-DD or YYYY-MM-DDTHH:MM
   onChange: (date: string) => void;
   placeholder?: string;
   required?: boolean;
+  mode?: 'date' | 'datetime';
 }
 
-export function DatePickerInput({ label, value, onChange, placeholder = 'YYYY-MM-DD', required }: DatePickerInputProps) {
+export function DatePickerInput({ label, value, onChange, placeholder, required, mode = 'date' }: DatePickerInputProps) {
+  const defaultPlaceholder = mode === 'datetime' ? 'YYYY-MM-DDTHH:MM' : 'YYYY-MM-DD';
+  const actualPlaceholder = placeholder ?? defaultPlaceholder;
   const [show, setShow] = useState(false);
   const [tempDate, setTempDate] = useState(value);
 
-  // For web, use native date input
+  // For web, use native date/datetime-local input
   if (Platform.OS === 'web') {
+    const inputType = mode === 'datetime' ? 'datetime-local' : 'date';
     return (
       <View style={styles.container}>
         <Text style={styles.label}>{label}{required ? ' *' : ''}</Text>
         <View style={styles.inputRow}>
           <Ionicons name="calendar-outline" size={20} color={colors.primary} style={styles.icon} />
           <input
-            type="date"
+            type={inputType}
             value={value}
             onChange={(e: any) => onChange(e.target.value)}
             style={{
@@ -42,8 +46,12 @@ export function DatePickerInput({ label, value, onChange, placeholder = 'YYYY-MM
   }
 
   // For native: modal with date input
+  const datePattern = mode === 'datetime'
+    ? /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/
+    : /^\d{4}-\d{2}-\d{2}$/;
+
   const handleConfirm = () => {
-    if (tempDate && /^\d{4}-\d{2}-\d{2}$/.test(tempDate)) {
+    if (tempDate && datePattern.test(tempDate)) {
       onChange(tempDate);
     }
     setShow(false);
@@ -55,7 +63,7 @@ export function DatePickerInput({ label, value, onChange, placeholder = 'YYYY-MM
       <TouchableOpacity style={styles.inputRow} onPress={() => { setTempDate(value); setShow(true); }}>
         <Ionicons name="calendar-outline" size={20} color={colors.primary} style={styles.icon} />
         <Text style={[styles.valueText, !value && styles.placeholderText]}>
-          {value || placeholder}
+          {value || actualPlaceholder}
         </Text>
       </TouchableOpacity>
 
@@ -67,7 +75,7 @@ export function DatePickerInput({ label, value, onChange, placeholder = 'YYYY-MM
               style={styles.modalInput}
               value={tempDate}
               onChangeText={setTempDate}
-              placeholder="YYYY-MM-DD"
+              placeholder={actualPlaceholder}
               placeholderTextColor={colors.placeholder}
               keyboardType="numbers-and-punctuation"
               autoFocus

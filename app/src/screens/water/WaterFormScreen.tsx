@@ -15,8 +15,12 @@ export function WaterFormScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!amountMl) {
-      Alert.alert('Oops!', 'Enter amount / Digite a quantidade.');
+    if (!amountMl || isNaN(Number(amountMl)) || Number(amountMl) <= 0) {
+      Alert.alert('Oops!', 'Enter a valid amount / Digite uma quantidade valida.');
+      return;
+    }
+    if (dailyGoal && (isNaN(Number(dailyGoal)) || Number(dailyGoal) <= 0)) {
+      Alert.alert('Oops!', 'Enter a valid daily goal / Digite uma meta valida.');
       return;
     }
     setLoading(true);

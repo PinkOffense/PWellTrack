@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class SymptomCreate(BaseModel):
-    datetime_: datetime = Field(alias="datetime", default=None)
+    datetime_: Optional[datetime] = Field(alias="datetime", default=None)
     type: str
-    severity: str  # mild, moderate, severe
+    severity: str = Field(pattern=r"^(mild|moderate|severe)$")
     notes: Optional[str] = None
 
     model_config = {"populate_by_name": True}

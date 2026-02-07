@@ -49,7 +49,7 @@ export function PetListScreen({ navigation }: Props) {
 
   return (
     <ScreenContainer
-      scroll={false}
+      scroll={pets.length === 0}
       refreshing={refreshing}
       onRefresh={onRefresh}
     >
