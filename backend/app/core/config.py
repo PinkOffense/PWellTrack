@@ -13,14 +13,19 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """Convert DATABASE_URL to async-compatible format.
-        Render gives postgres://... but SQLAlchemy needs postgresql+asyncpg://...
+        Supabase/Render give postgres://... but SQLAlchemy needs postgresql+asyncpg://...
         """
         url = self.DATABASE_URL
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-        elif url.startswith("postgresql://"):
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
+
+    @property
+    def is_postgres(self) -> bool:
+        """Check if using PostgreSQL (Supabase/production) vs SQLite (dev)."""
+        return "postgresql" in self.DATABASE_URL or "postgres://" in self.DATABASE_URL
 
 
 settings = Settings()
