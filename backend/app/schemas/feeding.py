@@ -13,6 +13,16 @@ class FeedingCreate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class FeedingUpdate(BaseModel):
+    datetime_: Optional[datetime] = Field(alias="datetime", default=None)
+    food_type: Optional[str] = None
+    planned_amount_grams: Optional[float] = None
+    actual_amount_grams: Optional[float] = None
+    notes: Optional[str] = None
+
+    model_config = {"populate_by_name": True}
+
+
 class FeedingOut(BaseModel):
     id: int
     pet_id: int

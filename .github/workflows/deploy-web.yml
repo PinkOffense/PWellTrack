@@ -33,6 +33,8 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Build web export
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.API_URL || '' }}
         run: npx expo export --platform web
 
       # SPA fallback — copy index.html to 404.html so GitHub Pages

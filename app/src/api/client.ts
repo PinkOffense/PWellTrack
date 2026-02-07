@@ -83,6 +83,41 @@ async function request<T>(method: RequestMethod, path: string, opts?: RequestOpt
   return res.json();
 }
 
+export async function uploadPetPhoto(petId: number, uri: string): Promise<any> {
+  const token = await tokenStorage.get();
+  const formData = new FormData();
+
+  // For web, fetch the blob
+  if (typeof window !== 'undefined' && uri.startsWith('data:')) {
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    formData.append('file', blob, 'photo.jpg');
+  } else {
+    // For native
+    const filename = uri.split('/').pop() || 'photo.jpg';
+    const ext = filename.split('.').pop() || 'jpg';
+    formData.append('file', {
+      uri,
+      name: filename,
+      type: `image/${ext}`,
+    } as any);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/pets/${petId}/photo`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new Error(err.detail || 'Upload failed');
+  }
+  return response.json();
+}
+
 export const api = {
   get: <T>(path: string, params?: Record<string, string>) =>
     request<T>('GET', path, { params }),

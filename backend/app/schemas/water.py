@@ -11,6 +11,14 @@ class WaterCreate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class WaterUpdate(BaseModel):
+    datetime_: Optional[datetime] = Field(alias="datetime", default=None)
+    amount_ml: Optional[float] = None
+    daily_goal_ml: Optional[float] = None
+
+    model_config = {"populate_by_name": True}
+
+
 class WaterOut(BaseModel):
     id: int
     pet_id: int

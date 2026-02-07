@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.symptom import Symptom
 from app.routers.pets import _get_pet_for_user
-from app.schemas.symptom import SymptomCreate, SymptomOut
+from app.schemas.symptom import SymptomCreate, SymptomUpdate, SymptomOut
 
 router = APIRouter(tags=["symptoms"])
 
@@ -45,3 +45,35 @@ async def create_symptom(
     await db.commit()
     await db.refresh(symptom)
     return SymptomOut.model_validate(symptom)
+
+
+@router.put("/symptoms/{symptom_id}", response_model=SymptomOut)
+async def update_symptom(
+    symptom_id: int,
+    data: SymptomUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    symptom = await db.get(Symptom, symptom_id)
+    if not symptom:
+        raise HTTPException(status_code=404, detail="Symptom not found")
+    await _get_pet_for_user(symptom.pet_id, current_user, db)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(symptom, key, value)
+    await db.commit()
+    await db.refresh(symptom)
+    return SymptomOut.model_validate(symptom)
+
+
+@router.delete("/symptoms/{symptom_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_symptom(
+    symptom_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    symptom = await db.get(Symptom, symptom_id)
+    if not symptom:
+        raise HTTPException(status_code=404, detail="Symptom not found")
+    await _get_pet_for_user(symptom.pet_id, current_user, db)
+    await db.delete(symptom)
+    await db.commit()

@@ -12,6 +12,15 @@ class SymptomCreate(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class SymptomUpdate(BaseModel):
+    datetime_: Optional[datetime] = Field(alias="datetime", default=None)
+    type: Optional[str] = None
+    severity: Optional[str] = None
+    notes: Optional[str] = None
+
+    model_config = {"populate_by_name": True}
+
+
 class SymptomOut(BaseModel):
     id: int
     pet_id: int

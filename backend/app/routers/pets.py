@@ -1,5 +1,5 @@
 from datetime import date, datetime, time, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -82,6 +82,24 @@ async def delete_pet(
     pet = await _get_pet_for_user(pet_id, current_user, db)
     await db.delete(pet)
     await db.commit()
+
+
+@router.post("/{pet_id}/photo", response_model=PetOut)
+async def upload_pet_photo(
+    pet_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    pet = await _get_pet_for_user(pet_id, current_user, db)
+    contents = await file.read()
+    import base64
+    b64 = base64.b64encode(contents).decode()
+    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    pet.photo_url = f"data:image/{ext};base64,{b64}"
+    await db.commit()
+    await db.refresh(pet)
+    return PetOut.model_validate(pet)
 
 
 @router.get("/{pet_id}/today", response_model=PetDashboard)

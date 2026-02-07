@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius } from '../theme';
 
@@ -7,6 +7,7 @@ interface Props {
   name: string;
   species: string;
   size?: number;
+  photoUrl?: string | null;
 }
 
 const speciesIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -21,9 +22,22 @@ const speciesColor: Record<string, string> = {
   exotic: colors.exotic,
 };
 
-export function PetAvatar({ name, species, size = 56 }: Props) {
+export function PetAvatar({ name, species, size = 56, photoUrl }: Props) {
   const bg = speciesColor[species] ?? colors.primary;
   const icon = speciesIcon[species] ?? 'paw';
+
+  if (photoUrl) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        }}
+      />
+    );
+  }
 
   return (
     <View

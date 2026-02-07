@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -25,6 +25,28 @@ export function WaterListScreen({ navigation, route }: Props) {
     }
   }, [petId]);
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this water log? / Apagar este registo de agua?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await waterApi.delete(id);
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   if (loading) {
@@ -46,22 +68,24 @@ export function WaterListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="water" size={22} color={colors.info} />
+            <TouchableOpacity activeOpacity={0.85} onLongPress={() => handleDelete(item.id)}>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="water" size={22} color={colors.info} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.amount}>{item.amount_ml} ml</Text>
+                    <Text style={styles.date}>
+                      {new Date(item.datetime).toLocaleString()}
+                    </Text>
+                  </View>
+                  {item.daily_goal_ml && (
+                    <Text style={styles.goal}>Goal: {item.daily_goal_ml} ml</Text>
+                  )}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.amount}>{item.amount_ml} ml</Text>
-                  <Text style={styles.date}>
-                    {new Date(item.datetime).toLocaleString()}
-                  </Text>
-                </View>
-                {item.daily_goal_ml && (
-                  <Text style={styles.goal}>Goal: {item.daily_goal_ml} ml</Text>
-                )}
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           )}
         />
       )}

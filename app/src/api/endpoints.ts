@@ -1,4 +1,4 @@
-import { api, isDemoMode } from './client';
+import { api, isDemoMode, uploadPetPhoto } from './client';
 import {
   DEMO_TOKEN, DEMO_USER, DEMO_PETS, DEMO_FEEDING, DEMO_WATER,
   DEMO_VACCINES, DEMO_MEDICATIONS, DEMO_EVENTS, DEMO_SYMPTOMS,
@@ -24,6 +24,8 @@ export const authApi = {
     isDemoMode() ? Promise.resolve(DEMO_TOKEN) : api.post('/auth/login', data),
   me: (): Promise<User> =>
     isDemoMode() ? Promise.resolve(DEMO_USER) : api.get('/auth/me'),
+  refresh: (): Promise<TokenResponse> =>
+    isDemoMode() ? Promise.resolve(DEMO_TOKEN) : api.post('/auth/refresh', {}),
 };
 
 // ── Pets ──
@@ -46,6 +48,10 @@ export const petsApi = {
     isDemoMode() ? Promise.resolve() : api.delete(`/pets/${id}`),
   today: (id: number): Promise<PetDashboard> =>
     isDemoMode() ? Promise.resolve(getDemoDashboard(id)) : api.get(`/pets/${id}/today`),
+  uploadPhoto: (petId: number, uri: string): Promise<Pet> =>
+    isDemoMode()
+      ? Promise.resolve({ ...DEMO_PETS[0], photo_url: uri } as Pet)
+      : uploadPetPhoto(petId, uri),
 };
 
 // ── Feeding ──
@@ -56,6 +62,12 @@ export const feedingApi = {
     isDemoMode()
       ? Promise.resolve({ id: Date.now(), pet_id: petId, datetime: new Date().toISOString(), ...data, planned_amount_grams: data.planned_amount_grams ?? null, notes: data.notes ?? null } as FeedingLog)
       : api.post(`/pets/${petId}/feeding`, data),
+  update: (id: number, data: Partial<FeedingCreate>): Promise<FeedingLog> =>
+    isDemoMode()
+      ? Promise.resolve({ id, pet_id: 0, datetime: new Date().toISOString(), food_type: '', actual_amount_grams: 0, planned_amount_grams: null, notes: null, ...data } as FeedingLog)
+      : api.put(`/feeding/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/feeding/${id}`),
 };
 
 // ── Water ──
@@ -66,6 +78,12 @@ export const waterApi = {
     isDemoMode()
       ? Promise.resolve({ id: Date.now(), pet_id: petId, datetime: new Date().toISOString(), ...data, daily_goal_ml: data.daily_goal_ml ?? null } as WaterLog)
       : api.post(`/pets/${petId}/water`, data),
+  update: (id: number, data: Partial<WaterCreate>): Promise<WaterLog> =>
+    isDemoMode()
+      ? Promise.resolve({ id, pet_id: 0, datetime: new Date().toISOString(), amount_ml: 0, daily_goal_ml: null, ...data } as WaterLog)
+      : api.put(`/water/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/water/${id}`),
 };
 
 // ── Vaccines ──
@@ -78,8 +96,10 @@ export const vaccinesApi = {
       : api.post(`/pets/${petId}/vaccines`, data),
   update: (id: number, data: Partial<VaccineCreate>): Promise<Vaccine> =>
     isDemoMode()
-      ? Promise.resolve({ id, pet_id: 1, name: '', date_administered: '', next_due_date: null, clinic: null, notes: null, document_url: null, ...data } as Vaccine)
+      ? Promise.resolve({ id, pet_id: 0, name: '', date_administered: '', next_due_date: null, clinic: null, notes: null, document_url: null, ...data } as Vaccine)
       : api.put(`/vaccines/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/vaccines/${id}`),
 };
 
 // ── Medications ──
@@ -92,8 +112,10 @@ export const medicationsApi = {
       : api.post(`/pets/${petId}/medications`, data),
   update: (id: number, data: Partial<MedicationCreate>): Promise<Medication> =>
     isDemoMode()
-      ? Promise.resolve({ id, pet_id: 1, name: '', dosage: '', frequency_per_day: 1, start_date: '', end_date: null, times_of_day: null, notes: null, ...data } as Medication)
+      ? Promise.resolve({ id, pet_id: 0, name: '', dosage: '', frequency_per_day: 1, start_date: '', end_date: null, times_of_day: null, notes: null, ...data } as Medication)
       : api.put(`/medications/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/medications/${id}`),
 };
 
 // ── Events ──
@@ -104,6 +126,12 @@ export const eventsApi = {
     isDemoMode()
       ? Promise.resolve({ id: Date.now(), pet_id: petId, ...data, duration_minutes: data.duration_minutes ?? null, location: data.location ?? null, notes: data.notes ?? null, reminder_minutes_before: data.reminder_minutes_before ?? null } as PetEvent)
       : api.post(`/pets/${petId}/events`, data),
+  update: (id: number, data: Partial<EventCreate>): Promise<PetEvent> =>
+    isDemoMode()
+      ? Promise.resolve({ id, pet_id: 0, type: '', title: '', datetime_start: '', duration_minutes: null, location: null, notes: null, reminder_minutes_before: null, ...data } as PetEvent)
+      : api.put(`/events/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/events/${id}`),
 };
 
 // ── Symptoms ──
@@ -114,4 +142,10 @@ export const symptomsApi = {
     isDemoMode()
       ? Promise.resolve({ id: Date.now(), pet_id: petId, datetime: new Date().toISOString(), ...data, notes: data.notes ?? null } as Symptom)
       : api.post(`/pets/${petId}/symptoms`, data),
+  update: (id: number, data: Partial<SymptomCreate>): Promise<Symptom> =>
+    isDemoMode()
+      ? Promise.resolve({ id, pet_id: 0, datetime: new Date().toISOString(), type: '', severity: 'mild', notes: null, ...data } as Symptom)
+      : api.put(`/symptoms/${id}`, data),
+  delete: (id: number): Promise<void> =>
+    isDemoMode() ? Promise.resolve() : api.delete(`/symptoms/${id}`),
 };

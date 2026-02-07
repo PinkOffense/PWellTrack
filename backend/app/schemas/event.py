@@ -13,6 +13,16 @@ class EventCreate(BaseModel):
     reminder_minutes_before: Optional[int] = None
 
 
+class EventUpdate(BaseModel):
+    type: Optional[str] = None
+    title: Optional[str] = None
+    datetime_start: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+    reminder_minutes_before: Optional[int] = None
+
+
 class EventOut(BaseModel):
     id: int
     pet_id: int

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -27,6 +27,28 @@ export function SymptomListScreen({ navigation, route }: Props) {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this symptom record? / Apagar este registo de sintoma?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await symptomsApi.delete(id);
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.danger} /></View>;
 
   return (
@@ -42,21 +64,23 @@ export function SymptomListScreen({ navigation, route }: Props) {
           renderItem={({ item }) => {
             const sColor = severityColor[item.severity] ?? colors.textMuted;
             return (
-              <Card style={styles.card}>
-                <View style={styles.row}>
-                  <View style={[styles.iconCircle, { backgroundColor: sColor + '20' }]}>
-                    <Ionicons name="pulse" size={22} color={sColor} />
+              <TouchableOpacity onLongPress={() => handleDelete(item.id)}>
+                <Card style={styles.card}>
+                  <View style={styles.row}>
+                    <View style={[styles.iconCircle, { backgroundColor: sColor + '20' }]}>
+                      <Ionicons name="pulse" size={22} color={sColor} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.name}>{item.type}</Text>
+                      <Text style={styles.date}>{new Date(item.datetime).toLocaleString()}</Text>
+                      {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+                    </View>
+                    <View style={[styles.badge, { backgroundColor: sColor + '20' }]}>
+                      <Text style={[styles.badgeText, { color: sColor }]}>{item.severity}</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.type}</Text>
-                    <Text style={styles.date}>{new Date(item.datetime).toLocaleString()}</Text>
-                    {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
-                  </View>
-                  <View style={[styles.badge, { backgroundColor: sColor + '20' }]}>
-                    <Text style={[styles.badgeText, { color: sColor }]}>{item.severity}</Text>
-                  </View>
-                </View>
-              </Card>
+                </Card>
+              </TouchableOpacity>
             );
           }}
         />

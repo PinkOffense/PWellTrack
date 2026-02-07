@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { petsApi, PetCreate } from '../../api';
-import { ScreenContainer, Input, GradientButton, Card } from '../../components';
+import { ScreenContainer, Input, GradientButton, Card, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,6 +24,7 @@ export function PetFormScreen({ navigation, route }: Props) {
   const [sex, setSex] = useState('');
   const [weightKg, setWeightKg] = useState('');
   const [notes, setNotes] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -35,9 +37,22 @@ export function PetFormScreen({ navigation, route }: Props) {
         setSex(pet.sex ?? '');
         setWeightKg(pet.weight_kg ? String(pet.weight_kg) : '');
         setNotes(pet.notes ?? '');
+        if (pet.photo_url) setPhotoUri(pet.photo_url);
       });
     }
   }, [petId]);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -55,10 +70,14 @@ export function PetFormScreen({ navigation, route }: Props) {
         weight_kg: weightKg ? parseFloat(weightKg) : undefined,
         notes: notes || undefined,
       };
+      let savedPet;
       if (petId) {
-        await petsApi.update(petId, data);
+        savedPet = await petsApi.update(petId, data);
       } else {
-        await petsApi.create(data);
+        savedPet = await petsApi.create(data);
+      }
+      if (photoUri && savedPet?.id) {
+        await petsApi.uploadPhoto(savedPet.id, photoUri);
       }
       navigation.goBack();
     } catch (e: any) {
@@ -73,6 +92,17 @@ export function PetFormScreen({ navigation, route }: Props) {
       <Text style={styles.title}>
         {petId ? 'Edit Pet / Editar Pet' : 'New Pet / Novo Pet'}
       </Text>
+
+      <TouchableOpacity style={styles.photoPickerContainer} onPress={pickImage}>
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <Ionicons name="camera" size={32} color={colors.textMuted} />
+            <Text style={styles.photoPlaceholderText}>Add Photo / Foto</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
       <Input label="Name / Nome *" value={name} onChangeText={setName} placeholder="Rex, Luna..." />
 
@@ -101,11 +131,10 @@ export function PetFormScreen({ navigation, route }: Props) {
       </View>
 
       <Input label="Breed / Raca" value={breed} onChangeText={setBreed} placeholder="Golden Retriever..." />
-      <Input
+      <DatePickerInput
         label="Date of Birth / Nascimento"
         value={dateOfBirth}
-        onChangeText={setDateOfBirth}
-        placeholder="YYYY-MM-DD"
+        onChange={setDateOfBirth}
       />
       <Input label="Sex / Sexo" value={sex} onChangeText={setSex} placeholder="Male, Female / Macho, Femea" />
       <Input
@@ -163,5 +192,30 @@ const styles = StyleSheet.create({
   speciesLabel: {
     fontSize: fontSize.xs,
     color: colors.textMuted,
+  },
+  photoPickerContainer: {
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  photoPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  photoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.border + '40',
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoPlaceholderText: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
 });
