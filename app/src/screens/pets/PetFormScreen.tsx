@@ -27,6 +27,8 @@ export function PetFormScreen({ navigation, route }: Props) {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [originalPhotoUrl, setOriginalPhotoUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (petId) {
       petsApi.get(petId).then((pet) => {
@@ -37,7 +39,12 @@ export function PetFormScreen({ navigation, route }: Props) {
         setSex(pet.sex ?? '');
         setWeightKg(pet.weight_kg ? String(pet.weight_kg) : '');
         setNotes(pet.notes ?? '');
-        if (pet.photo_url) setPhotoUri(pet.photo_url);
+        if (pet.photo_url) {
+          setPhotoUri(pet.photo_url);
+          setOriginalPhotoUrl(pet.photo_url);
+        }
+      }).catch((e: any) => {
+        Alert.alert('Error / Erro', e.message);
       });
     }
   }, [petId]);
@@ -59,6 +66,10 @@ export function PetFormScreen({ navigation, route }: Props) {
       Alert.alert('Oops!', 'Please enter a name / Digite um nome.');
       return;
     }
+    if (weightKg && (isNaN(Number(weightKg)) || Number(weightKg) <= 0)) {
+      Alert.alert('Oops!', 'Enter a valid weight / Digite um peso valido.');
+      return;
+    }
     setLoading(true);
     try {
       const data: PetCreate = {
@@ -76,7 +87,8 @@ export function PetFormScreen({ navigation, route }: Props) {
       } else {
         savedPet = await petsApi.create(data);
       }
-      if (photoUri && savedPet?.id) {
+      // Only upload photo if it was changed (not the existing remote URL)
+      if (photoUri && savedPet?.id && photoUri !== originalPhotoUrl) {
         await petsApi.uploadPhoto(savedPet.id, photoUri);
       }
       navigation.goBack();

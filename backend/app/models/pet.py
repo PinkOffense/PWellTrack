@@ -17,7 +17,7 @@ class Pet(Base):
     date_of_birth: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     sex: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     weight_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    photo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    photo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

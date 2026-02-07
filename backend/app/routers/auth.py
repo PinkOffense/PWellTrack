@@ -1,6 +1,7 @@
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -18,17 +19,22 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(User).where(User.email == data.email))
+    email = data.email.lower()
+    existing = await db.execute(select(User).where(User.email == email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = User(
         name=data.name,
-        email=data.email,
+        email=email,
         password_hash=hash_password(data.password),
     )
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered")
     await db.refresh(user)
 
     token = create_access_token(user.id)
@@ -38,7 +44,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == data.email))
+    result = await db.execute(select(User).where(User.email == data.email.lower()))
     user = result.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -55,14 +61,17 @@ async def google_auth(request: Request, data: GoogleAuthRequest, db: AsyncSessio
     if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
         raise HTTPException(status_code=500, detail="Supabase not configured")
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{settings.SUPABASE_URL}/auth/v1/user",
-            headers={
-                "Authorization": f"Bearer {data.supabase_token}",
-                "apikey": settings.SUPABASE_ANON_KEY,
-            },
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"{settings.SUPABASE_URL}/auth/v1/user",
+                headers={
+                    "Authorization": f"Bearer {data.supabase_token}",
+                    "apikey": settings.SUPABASE_ANON_KEY,
+                },
+            )
+    except (httpx.ConnectError, httpx.TimeoutException):
+        raise HTTPException(status_code=502, detail="Could not verify Google token")
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid Google token")
 
@@ -72,18 +81,27 @@ async def google_auth(request: Request, data: GoogleAuthRequest, db: AsyncSessio
         raise HTTPException(status_code=401, detail="Email mismatch")
 
     # Find or create user
-    result = await db.execute(select(User).where(User.email == data.email.lower()))
+    email = data.email.lower()
+    result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
     if not user:
         user = User(
             name=data.name,
-            email=data.email.lower(),
-            password_hash="google-oauth",
+            email=email,
+            password_hash="!google-oauth",
         )
         db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+            if not user:
+                raise HTTPException(status_code=500, detail="Account creation failed")
+        else:
+            await db.refresh(user)
 
     token = create_access_token(user.id)
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))

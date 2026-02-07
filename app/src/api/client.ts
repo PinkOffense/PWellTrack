@@ -7,6 +7,7 @@ let _demoMode = false;
 /** Returns true when the app is running without a backend (e.g. GitHub Pages). */
 export const isDemoMode = () => _demoMode;
 export const enableDemoMode = () => { _demoMode = true; };
+export const disableDemoMode = () => { _demoMode = false; };
 
 // Dynamically import storage depending on platform
 const getStorage = async () => {

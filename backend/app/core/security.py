@@ -88,10 +88,11 @@ async def get_current_user(
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
+        uid = int(user_id)
     except Exception:
         raise credentials_exception
 
-    user = await db.get(User, int(user_id))
+    user = await db.get(User, uid)
     if user is None:
         raise credentials_exception
     return user
