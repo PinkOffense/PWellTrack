@@ -1,6 +1,6 @@
 [build]
   base = "app"
-  command = "npm ci --legacy-peer-deps && npx expo export --platform web"
+  command = "node -e \"const f='app.json',j=JSON.parse(require('fs').readFileSync(f));j.expo.experiments.baseUrl='';require('fs').writeFileSync(f,JSON.stringify(j,null,2))\" && npm ci --legacy-peer-deps && npx expo export --platform web"
   publish = "dist"
 
 [build.environment]
