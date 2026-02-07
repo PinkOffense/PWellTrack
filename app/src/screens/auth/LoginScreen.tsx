@@ -95,7 +95,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 }
 
 export function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth();
+  const { login, enterDemoMode, backendReachable } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -179,6 +179,16 @@ export function LoginScreen({ navigation }: Props) {
               O companheiro de saude do seu pet
             </Text>
 
+            {/* Offline banner */}
+            {!backendReachable && (
+              <View style={styles.offlineBanner}>
+                <Ionicons name="cloud-offline" size={16} color="#F59E0B" />
+                <Text style={styles.offlineBannerText}>
+                  Offline - use Demo to explore / Offline - use Demo para explorar
+                </Text>
+              </View>
+            )}
+
             {/* Form card */}
             <View style={styles.formCard}>
               <View style={styles.welcomeRow}>
@@ -226,10 +236,7 @@ export function LoginScreen({ navigation }: Props) {
               {/* Demo mode button */}
               <TouchableOpacity
                 style={styles.demoBtn}
-                onPress={() => {
-                  // Just login with demo credentials
-                  handleLogin();
-                }}
+                onPress={enterDemoMode}
               >
                 <Ionicons name="play-circle" size={20} color={colors.primary} />
                 <Text style={styles.demoBtnText}>Try demo / Experimentar demo</Text>
@@ -433,6 +440,24 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.primary,
     fontWeight: '600',
+  },
+
+  // Offline banner
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+  },
+  offlineBannerText: {
+    fontSize: fontSize.sm,
+    color: '#92400E',
+    fontWeight: '500',
   },
 
   // Register link
