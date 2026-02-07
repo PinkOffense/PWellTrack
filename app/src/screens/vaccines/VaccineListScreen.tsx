@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -19,6 +19,28 @@ export function VaccineListScreen({ navigation, route }: Props) {
     finally { setLoading(false); }
   }, [petId]);
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this vaccine record? / Apagar este registo de vacina?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await vaccinesApi.delete(id);
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.success} /></View>;
@@ -34,19 +56,21 @@ export function VaccineListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="shield-checkmark" size={22} color={colors.success} />
+            <TouchableOpacity activeOpacity={0.85} onLongPress={() => handleDelete(item.id)}>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="shield-checkmark" size={22} color={colors.success} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.date}>Administered: {item.date_administered}</Text>
+                    {item.next_due_date && <Text style={styles.due}>Next: {item.next_due_date}</Text>}
+                    {item.clinic && <Text style={styles.meta}>{item.clinic}</Text>}
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.date}>Administered: {item.date_administered}</Text>
-                  {item.next_due_date && <Text style={styles.due}>Next: {item.next_due_date}</Text>}
-                  {item.clinic && <Text style={styles.meta}>{item.clinic}</Text>}
-                </View>
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           )}
         />
       )}

@@ -56,3 +56,17 @@ async def update_medication(
     await db.commit()
     await db.refresh(med)
     return MedicationOut.model_validate(med)
+
+
+@router.delete("/medications/{medication_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_medication(
+    medication_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    med = await db.get(Medication, medication_id)
+    if not med:
+        raise HTTPException(status_code=404, detail="Medication not found")
+    await _get_pet_for_user(med.pet_id, current_user, db)
+    await db.delete(med)
+    await db.commit()

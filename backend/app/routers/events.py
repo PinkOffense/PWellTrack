@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +7,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.event import Event
 from app.routers.pets import _get_pet_for_user
-from app.schemas.event import EventCreate, EventOut
+from app.schemas.event import EventCreate, EventUpdate, EventOut
 
 router = APIRouter(tags=["events"])
 
@@ -38,3 +38,35 @@ async def create_event(
     await db.commit()
     await db.refresh(event)
     return EventOut.model_validate(event)
+
+
+@router.put("/events/{event_id}", response_model=EventOut)
+async def update_event(
+    event_id: int,
+    data: EventUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    event = await db.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    await _get_pet_for_user(event.pet_id, current_user, db)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(event, key, value)
+    await db.commit()
+    await db.refresh(event)
+    return EventOut.model_validate(event)
+
+
+@router.delete("/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_event(
+    event_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    event = await db.get(Event, event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    await _get_pet_for_user(event.pet_id, current_user, db)
+    await db.delete(event)
+    await db.commit()

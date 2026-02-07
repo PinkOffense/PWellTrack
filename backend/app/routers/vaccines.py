@@ -57,3 +57,17 @@ async def update_vaccine(
     await db.commit()
     await db.refresh(vaccine)
     return VaccineOut.model_validate(vaccine)
+
+
+@router.delete("/vaccines/{vaccine_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_vaccine(
+    vaccine_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    vaccine = await db.get(Vaccine, vaccine_id)
+    if not vaccine:
+        raise HTTPException(status_code=404, detail="Vaccine not found")
+    await _get_pet_for_user(vaccine.pet_id, current_user, db)
+    await db.delete(vaccine)
+    await db.commit()

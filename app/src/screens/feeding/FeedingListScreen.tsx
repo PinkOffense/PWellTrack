@@ -33,6 +33,28 @@ export function FeedingListScreen({ navigation, route }: Props) {
     }
   }, [petId]);
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this feeding log? / Apagar este registo?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await feedingApi.delete(id);
+              fetchLogs();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -66,32 +88,34 @@ export function FeedingListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="restaurant" size={20} color={colors.primary} />
+            <TouchableOpacity activeOpacity={0.85} onLongPress={() => handleDelete(item.id)}>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="restaurant" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.info}>
+                    <Text style={styles.foodType}>{item.food_type}</Text>
+                    <Text style={styles.meta}>
+                      {item.actual_amount_grams}g
+                      {item.planned_amount_grams
+                        ? ` / ${item.planned_amount_grams}g planned`
+                        : ''}
+                    </Text>
+                    <Text style={styles.date}>
+                      {new Date(item.datetime).toLocaleDateString()} -{' '}
+                      {new Date(item.datetime).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.info}>
-                  <Text style={styles.foodType}>{item.food_type}</Text>
-                  <Text style={styles.meta}>
-                    {item.actual_amount_grams}g
-                    {item.planned_amount_grams
-                      ? ` / ${item.planned_amount_grams}g planned`
-                      : ''}
-                  </Text>
-                  <Text style={styles.date}>
-                    {new Date(item.datetime).toLocaleDateString()} -{' '}
-                    {new Date(item.datetime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              </View>
-              {item.notes ? (
-                <Text style={styles.notes}>{item.notes}</Text>
-              ) : null}
-            </Card>
+                {item.notes ? (
+                  <Text style={styles.notes}>{item.notes}</Text>
+                ) : null}
+              </Card>
+            </TouchableOpacity>
           )}
         />
       )}

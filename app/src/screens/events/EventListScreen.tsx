@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,6 +28,28 @@ export function EventListScreen({ navigation, route }: Props) {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this event? / Apagar este evento?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await eventsApi.delete(id);
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.accent} /></View>;
 
   return (
@@ -41,18 +63,20 @@ export function EventListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name={typeIcon[item.type] ?? 'calendar'} size={22} color={colors.accent} />
+            <TouchableOpacity onLongPress={() => handleDelete(item.id)}>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name={typeIcon[item.type] ?? 'calendar'} size={22} color={colors.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.title}</Text>
+                    <Text style={styles.date}>{new Date(item.datetime_start).toLocaleString()}</Text>
+                    <Text style={styles.meta}>{item.type.replace('_', ' ')}{item.location ? ` @ ${item.location}` : ''}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.title}</Text>
-                  <Text style={styles.date}>{new Date(item.datetime_start).toLocaleString()}</Text>
-                  <Text style={styles.meta}>{item.type.replace('_', ' ')}{item.location ? ` @ ${item.location}` : ''}</Text>
-                </View>
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           )}
         />
       )}

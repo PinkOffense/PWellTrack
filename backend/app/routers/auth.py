@@ -43,3 +43,10 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return UserOut.model_validate(current_user)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(current_user: User = Depends(get_current_user)):
+    """Issue a fresh token for an authenticated user."""
+    token = create_access_token(current_user.id)
+    return TokenResponse(access_token=token, user=UserOut.model_validate(current_user))

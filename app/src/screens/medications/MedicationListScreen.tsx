@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +21,28 @@ export function MedicationListScreen({ navigation, route }: Props) {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      'Delete / Apagar',
+      'Delete this medication? / Apagar este medicamento?',
+      [
+        { text: 'Cancel / Cancelar', style: 'cancel' },
+        {
+          text: 'Delete / Apagar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await medicationsApi.delete(id);
+              fetchData();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.primaryLight} /></View>;
 
   return (
@@ -34,18 +56,20 @@ export function MedicationListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <View style={styles.row}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="medkit" size={22} color={colors.primaryLight} />
+            <TouchableOpacity onLongPress={() => handleDelete(item.id)}>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name="medkit" size={22} color={colors.primaryLight} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}x/day</Text>
+                    <Text style={styles.date}>{item.start_date}{item.end_date ? ` to ${item.end_date}` : ' (ongoing)'}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}x/day</Text>
-                  <Text style={styles.date}>{item.start_date}{item.end_date ? ` to ${item.end_date}` : ' (ongoing)'}</Text>
-                </View>
-              </View>
-            </Card>
+              </Card>
+            </TouchableOpacity>
           )}
         />
       )}
