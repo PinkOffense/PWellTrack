@@ -64,11 +64,11 @@ export function PetFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert(t('common.oops'), t('forms.nameRequired'));
+      Alert.alert(t('common.error'), t('forms.nameRequired'));
       return;
     }
     if (weightKg && (isNaN(Number(weightKg)) || Number(weightKg) <= 0)) {
-      Alert.alert(t('common.oops'), t('forms.invalidWeight'));
+      Alert.alert(t('common.error'), t('forms.invalidWeight'));
       return;
     }
     setLoading(true);
@@ -91,7 +91,7 @@ export function PetFormScreen({ navigation, route }: Props) {
       if (photoUri && savedPet?.id && photoUri !== originalPhotoUrl) {
         await petsApi.uploadPhoto(savedPet.id, photoUri);
       }
-      Alert.alert('', t('forms.petSaved'));
+      Alert.alert(t('common.success'), t('forms.petSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);
@@ -102,7 +102,7 @@ export function PetFormScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>{petId ? t('pets.editPet') : t('pets.newPet')}</Text>
+      <Text style={styles.title}>{petId ? t('pets.editPet') : t('pets.addPet')}</Text>
 
       <TouchableOpacity style={styles.photoPickerContainer} onPress={pickImage}>
         {photoUri ? (
@@ -138,7 +138,7 @@ export function PetFormScreen({ navigation, route }: Props) {
 
       <Input label={t('pets.breed')} value={breed} onChangeText={setBreed} placeholder="Golden Retriever..." />
       <DatePickerInput label={t('pets.dob')} value={dateOfBirth} onChange={setDateOfBirth} />
-      <Input label={t('pets.sex')} value={sex} onChangeText={setSex} placeholder={t('pets.sexPlaceholder')} />
+      <Input label={t('pets.sex')} value={sex} onChangeText={setSex} placeholder={`${t('pets.male')}, ${t('pets.female')}`} />
       <Input label={t('pets.weight')} value={weightKg} onChangeText={setWeightKg} placeholder="12.5" keyboardType="decimal-pad" />
       <Input label={t('common.notes')} value={notes} onChangeText={setNotes} placeholder="..." multiline />
 
