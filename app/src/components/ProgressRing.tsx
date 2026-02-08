@@ -15,51 +15,53 @@ export function ProgressRing({ current, goal, unit, label, color = colors.primar
   const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
   const displayPct = Math.round(pct);
 
+  // Use 12 tick segments to represent progress visually
+  const totalTicks = 12;
+  const filledTicks = Math.round((pct / 100) * totalTicks);
+  const radius = size / 2;
+
   return (
     <View style={[styles.container, { width: size + 40 }]}>
-      {/* Simple circular progress visualization */}
-      <View
-        style={[
-          styles.ring,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderColor: color + '20',
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.ringInner,
-            {
-              width: size - 12,
-              height: size - 12,
-              borderRadius: (size - 12) / 2,
-            },
-          ]}
-        >
+      <View style={[styles.outerRing, { width: size, height: size, borderRadius: radius }]}>
+        {/* Background circle */}
+        <View style={[
+          styles.bgCircle,
+          { width: size, height: size, borderRadius: radius, borderColor: color + '15' },
+        ]} />
+        {/* Tick marks around the ring */}
+        {Array.from({ length: totalTicks }).map((_, i) => {
+          const angle = (i * (360 / totalTicks)) - 90; // start from top
+          const isFilled = i < filledTicks;
+          const tickH = size * 0.18;
+          return (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                width: 6,
+                height: tickH,
+                borderRadius: 3,
+                backgroundColor: isFilled ? color : color + '18',
+                left: radius - 3,
+                top: radius - tickH / 2,
+                transform: [
+                  { rotate: `${angle}deg` },
+                  { translateY: -(radius - tickH / 2 - 2) },
+                ],
+              }}
+            />
+          );
+        })}
+        {/* Inner white circle with percentage */}
+        <View style={[
+          styles.inner,
+          { width: size - 24, height: size - 24, borderRadius: (size - 24) / 2 },
+        ]}>
           <Text style={[styles.pctText, { color }]}>{displayPct}%</Text>
           <Text style={styles.valueText}>
             {Math.round(current)}/{Math.round(goal)} {unit}
           </Text>
         </View>
-        {/* Progress bar overlay */}
-        <View
-          style={[
-            styles.progressArc,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              borderColor: color,
-              borderTopColor: pct >= 25 ? color : 'transparent',
-              borderRightColor: pct >= 50 ? color : 'transparent',
-              borderBottomColor: pct >= 75 ? color : 'transparent',
-              borderLeftColor: pct >= 100 ? color : 'transparent',
-            },
-          ]}
-        />
       </View>
       <Text style={styles.label}>{label}</Text>
     </View>
@@ -70,20 +72,20 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
   },
-  ring: {
-    borderWidth: 6,
+  outerRing: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  ringInner: {
+  bgCircle: {
+    position: 'absolute',
+    borderWidth: 6,
+  },
+  inner: {
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  progressArc: {
-    position: 'absolute',
-    borderWidth: 6,
+    zIndex: 10,
   },
   pctText: {
     fontSize: fontSize.xl,

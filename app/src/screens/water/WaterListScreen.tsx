@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { waterApi, WaterLog } from '../../api';
 import { ScreenContainer, Card, EmptyState } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
@@ -10,6 +11,7 @@ import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 type Props = NativeStackScreenProps<any, 'WaterList'>;
 
 export function WaterListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { petId, petName } = route.params as { petId: number; petName: string };
   const [logs, setLogs] = useState<WaterLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,19 +29,19 @@ export function WaterListScreen({ navigation, route }: Props) {
 
   const handleDelete = (id: number) => {
     Alert.alert(
-      'Delete / Apagar',
-      'Delete this water log? / Apagar este registo de agua?',
+      t('common.delete'),
+      t('water.deleteConfirm'),
       [
-        { text: 'Cancel / Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete / Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await waterApi.delete(id);
               fetchData();
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              Alert.alert(t('common.error'), e.message);
             }
           },
         },
@@ -55,11 +57,14 @@ export function WaterListScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer scroll={false}>
+      <Text style={styles.title}>{t('water.title')}</Text>
+      <Text style={styles.subtitle}>{petName}</Text>
+
       {logs.length === 0 ? (
         <EmptyState
           icon="water"
-          title="No water logs yet / Nenhum registro de agua"
-          subtitle="Tap + to add a water log.\nToque + para adicionar."
+          title={t('water.noLogs')}
+          subtitle={t('water.noLogsHint')}
         />
       ) : (
         <FlatList
@@ -68,24 +73,25 @@ export function WaterListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity activeOpacity={0.85} onLongPress={() => handleDelete(item.id)}>
-              <Card style={styles.card}>
-                <View style={styles.row}>
-                  <View style={styles.iconCircle}>
-                    <Ionicons name="water" size={22} color={colors.info} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.amount}>{item.amount_ml} ml</Text>
-                    <Text style={styles.date}>
-                      {new Date(item.datetime).toLocaleString()}
-                    </Text>
-                  </View>
-                  {item.daily_goal_ml && (
-                    <Text style={styles.goal}>Goal: {item.daily_goal_ml} ml</Text>
-                  )}
+            <Card style={styles.card}>
+              <View style={styles.row}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="water" size={22} color={colors.info} />
                 </View>
-              </Card>
-            </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.amount}>{item.amount_ml} ml</Text>
+                  <Text style={styles.date}>
+                    {new Date(item.datetime).toLocaleString()}
+                  </Text>
+                </View>
+                {item.daily_goal_ml && (
+                  <Text style={styles.goal}>{t('water.dailyGoal')} {item.daily_goal_ml} ml</Text>
+                )}
+                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </TouchableOpacity>
+              </View>
+            </Card>
           )}
         />
       )}
@@ -102,6 +108,8 @@ export function WaterListScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.textPrimary, paddingHorizontal: spacing.lg },
+  subtitle: { fontSize: fontSize.md, color: colors.textSecondary, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   list: { padding: spacing.lg, paddingBottom: 100 },
   card: { padding: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -114,6 +122,7 @@ const styles = StyleSheet.create({
   amount: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textPrimary },
   date: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
   goal: { fontSize: fontSize.xs, color: colors.textMuted },
+  deleteBtn: { padding: spacing.sm, marginLeft: spacing.sm },
   fab: {
     position: 'absolute', bottom: spacing.xl, right: spacing.xl,
     width: 56, height: 56, borderRadius: 28,

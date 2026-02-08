@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { medicationsApi, Medication } from '../../api';
 import { ScreenContainer, Card, EmptyState } from '../../components';
 import { colors, fontSize, spacing, shadows } from '../../theme';
@@ -10,6 +11,7 @@ import { colors, fontSize, spacing, shadows } from '../../theme';
 type Props = NativeStackScreenProps<any, 'MedicationList'>;
 
 export function MedicationListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { petId, petName } = route.params as { petId: number; petName: string };
   const [items, setItems] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,19 +25,19 @@ export function MedicationListScreen({ navigation, route }: Props) {
 
   const handleDelete = (id: number) => {
     Alert.alert(
-      'Delete / Apagar',
-      'Delete this medication? / Apagar este medicamento?',
+      t('common.delete'),
+      t('medications.deleteConfirm'),
       [
-        { text: 'Cancel / Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete / Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await medicationsApi.delete(id);
               fetchData();
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              Alert.alert(t('common.error'), e.message);
             }
           },
         },
@@ -47,8 +49,11 @@ export function MedicationListScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer scroll={false}>
+      <Text style={styles.title}>{t('medications.title')}</Text>
+      <Text style={styles.subtitle}>{petName}</Text>
+
       {items.length === 0 ? (
-        <EmptyState icon="medkit" title="No medications / Nenhum remedio" subtitle="Tap + to add a medication.\nToque + para adicionar." />
+        <EmptyState icon="medkit" title={t('medications.noMeds')} subtitle={t('medications.noMedsHint')} />
       ) : (
         <FlatList
           data={items}
@@ -56,20 +61,24 @@ export function MedicationListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity onLongPress={() => handleDelete(item.id)}>
-              <Card style={styles.card}>
-                <View style={styles.row}>
-                  <View style={styles.iconCircle}>
-                    <Ionicons name="medkit" size={22} color={colors.primaryLight} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}x/day</Text>
-                    <Text style={styles.date}>{item.start_date}{item.end_date ? ` to ${item.end_date}` : ' (ongoing)'}</Text>
-                  </View>
+            <Card style={styles.card}>
+              <View style={styles.row}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="medkit" size={22} color={colors.primaryLight} />
                 </View>
-              </Card>
-            </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}x/day</Text>
+                  <Text style={styles.date}>
+                    {item.start_date}
+                    {item.end_date ? ` to ${item.end_date}` : ` (${t('medications.ongoing')})`}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </TouchableOpacity>
+              </View>
+            </Card>
           )}
         />
       )}
@@ -82,6 +91,8 @@ export function MedicationListScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.textPrimary, paddingHorizontal: spacing.lg },
+  subtitle: { fontSize: fontSize.md, color: colors.textSecondary, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   list: { padding: spacing.lg, paddingBottom: 100 },
   card: { padding: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -89,5 +100,6 @@ const styles = StyleSheet.create({
   name: { fontSize: fontSize.lg, fontWeight: '700', color: colors.textPrimary },
   dosage: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
   date: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
+  deleteBtn: { padding: spacing.sm, marginLeft: spacing.sm },
   fab: { position: 'absolute', bottom: spacing.xl, right: spacing.xl, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', ...shadows.button },
 });

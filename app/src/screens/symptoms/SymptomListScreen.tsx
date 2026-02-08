@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { symptomsApi, Symptom } from '../../api';
 import { ScreenContainer, Card, EmptyState } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
@@ -15,7 +16,14 @@ const severityColor: Record<string, string> = {
   severe: colors.danger,
 };
 
+const severityI18nKey: Record<string, string> = {
+  mild: 'symptoms.mild',
+  moderate: 'symptoms.moderate',
+  severe: 'symptoms.severe',
+};
+
 export function SymptomListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { petId, petName } = route.params as { petId: number; petName: string };
   const [items, setItems] = useState<Symptom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,19 +37,19 @@ export function SymptomListScreen({ navigation, route }: Props) {
 
   const handleDelete = (id: number) => {
     Alert.alert(
-      'Delete / Apagar',
-      'Delete this symptom record? / Apagar este registo de sintoma?',
+      t('common.delete'),
+      t('symptoms.deleteConfirm'),
       [
-        { text: 'Cancel / Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete / Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await symptomsApi.delete(id);
               fetchData();
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              Alert.alert(t('common.error'), e.message);
             }
           },
         },
@@ -53,8 +61,11 @@ export function SymptomListScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer scroll={false}>
+      <Text style={styles.title}>{t('symptoms.title')}</Text>
+      <Text style={styles.subtitle}>{petName}</Text>
+
       {items.length === 0 ? (
-        <EmptyState icon="pulse" title="No symptoms / Nenhum sintoma" subtitle="Tap + to record a symptom.\nToque + para registrar." />
+        <EmptyState icon="pulse" title={t('symptoms.noSymptoms')} subtitle={t('symptoms.noSymptomsHint')} />
       ) : (
         <FlatList
           data={items}
@@ -64,23 +75,26 @@ export function SymptomListScreen({ navigation, route }: Props) {
           renderItem={({ item }) => {
             const sColor = severityColor[item.severity] ?? colors.textMuted;
             return (
-              <TouchableOpacity onLongPress={() => handleDelete(item.id)}>
-                <Card style={styles.card}>
-                  <View style={styles.row}>
-                    <View style={[styles.iconCircle, { backgroundColor: sColor + '20' }]}>
-                      <Ionicons name="pulse" size={22} color={sColor} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.name}>{item.type}</Text>
-                      <Text style={styles.date}>{new Date(item.datetime).toLocaleString()}</Text>
-                      {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
-                    </View>
-                    <View style={[styles.badge, { backgroundColor: sColor + '20' }]}>
-                      <Text style={[styles.badgeText, { color: sColor }]}>{item.severity}</Text>
-                    </View>
+              <Card style={styles.card}>
+                <View style={styles.row}>
+                  <View style={[styles.iconCircle, { backgroundColor: sColor + '20' }]}>
+                    <Ionicons name="pulse" size={22} color={sColor} />
                   </View>
-                </Card>
-              </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name}>{item.type}</Text>
+                    <Text style={styles.date}>{new Date(item.datetime).toLocaleString()}</Text>
+                    {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: sColor + '20' }]}>
+                    <Text style={[styles.badgeText, { color: sColor }]}>
+                      {t(severityI18nKey[item.severity] ?? 'symptoms.mild')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
+                    <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                </View>
+              </Card>
             );
           }}
         />
@@ -94,6 +108,8 @@ export function SymptomListScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  title: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.textPrimary, paddingHorizontal: spacing.lg },
+  subtitle: { fontSize: fontSize.md, color: colors.textSecondary, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   list: { padding: spacing.lg, paddingBottom: 100 },
   card: { padding: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -103,5 +119,6 @@ const styles = StyleSheet.create({
   notes: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
   badge: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: borderRadius.sm },
   badgeText: { fontSize: fontSize.xs, fontWeight: '700', textTransform: 'capitalize' },
+  deleteBtn: { padding: spacing.sm, marginLeft: spacing.sm },
   fab: { position: 'absolute', bottom: spacing.xl, right: spacing.xl, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', ...shadows.button },
 });

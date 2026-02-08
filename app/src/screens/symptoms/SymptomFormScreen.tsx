@@ -1,36 +1,39 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { symptomsApi } from '../../api';
 import { ScreenContainer, Input, GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'SymptomForm'>;
 
-const SEVERITIES = [
-  { key: 'mild', label: 'Mild / Leve', color: colors.success },
-  { key: 'moderate', label: 'Moderate / Moderado', color: colors.warning },
-  { key: 'severe', label: 'Severe / Grave', color: colors.danger },
-];
-
 export function SymptomFormScreen({ navigation, route }: Props) {
   const { petId } = route.params as { petId: number };
+  const { t } = useTranslation();
   const [type, setType] = useState('');
   const [severity, setSeverity] = useState('mild');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const SEVERITIES = [
+    { key: 'mild', label: t('symptoms.mild'), color: colors.success },
+    { key: 'moderate', label: t('symptoms.moderate'), color: colors.warning },
+    { key: 'severe', label: t('symptoms.severe'), color: colors.danger },
+  ];
+
   const handleSave = async () => {
     if (!type) {
-      Alert.alert('Oops!', 'Symptom type is required / Tipo do sintoma e obrigatorio.');
+      Alert.alert(t('common.oops'), t('forms.symptomRequired'));
       return;
     }
     setLoading(true);
     try {
       await symptomsApi.create(petId, { type, severity, notes: notes || undefined });
+      Alert.alert('', t('forms.symptomSaved'));
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error / Erro', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
@@ -38,23 +41,15 @@ export function SymptomFormScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>Record Symptom / Registrar Sintoma</Text>
-      <Input
-        label="Symptom Type / Tipo *"
-        value={type}
-        onChangeText={setType}
-        placeholder="vomiting, diarrhea, lethargy..."
-      />
+      <Text style={styles.title}>{t('symptoms.addSymptom')}</Text>
+      <Input label={`${t('symptoms.symptomType')} *`} value={type} onChangeText={setType} placeholder="vomiting, diarrhea, lethargy..." />
 
-      <Text style={styles.sectionLabel}>Severity / Gravidade</Text>
+      <Text style={styles.sectionLabel}>{t('symptoms.severity')}</Text>
       <View style={styles.severityRow}>
         {SEVERITIES.map((s) => (
           <TouchableOpacity
             key={s.key}
-            style={[
-              styles.severityChip,
-              severity === s.key && { backgroundColor: s.color + '20', borderColor: s.color },
-            ]}
+            style={[styles.severityChip, severity === s.key && { backgroundColor: s.color + '20', borderColor: s.color }]}
             onPress={() => setSeverity(s.key)}
           >
             <View style={[styles.dot, { backgroundColor: s.color }]} />
@@ -65,8 +60,8 @@ export function SymptomFormScreen({ navigation, route }: Props) {
         ))}
       </View>
 
-      <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Details..." multiline />
-      <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} variant="danger" style={{ marginTop: spacing.md }} />
+      <Input label={t('common.notes')} value={notes} onChangeText={setNotes} placeholder="..." multiline />
+      <GradientButton title={t('common.save')} onPress={handleSave} loading={loading} variant="danger" style={{ marginTop: spacing.md }} />
     </ScreenContainer>
   );
 }
