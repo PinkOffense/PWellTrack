@@ -19,11 +19,11 @@ export function FeedingFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!foodType.trim()) {
-      Alert.alert(t('common.oops'), t('forms.foodTypeRequired'));
+      Alert.alert(t('common.error'), t('forms.foodTypeRequired'));
       return;
     }
     if (!actualGrams.trim() || isNaN(Number(actualGrams))) {
-      Alert.alert(t('common.oops'), t('forms.invalidAmount'));
+      Alert.alert(t('common.error'), t('forms.invalidAmount'));
       return;
     }
     setLoading(true);
@@ -35,7 +35,7 @@ export function FeedingFormScreen({ navigation, route }: Props) {
         notes: notes.trim() || undefined,
       };
       await feedingApi.create(petId, data);
-      Alert.alert('', t('forms.feedingSaved'));
+      Alert.alert(t('common.success'), t('forms.feedingSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);

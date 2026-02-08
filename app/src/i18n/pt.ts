@@ -40,6 +40,7 @@ export default {
     googleSignIn: 'Entrar com Google',
     googleSignUp: 'Registar com Google',
     googleFailed: 'Falha no Google Sign-In',
+    googleNotConfigured: 'O Google Sign-In necessita de configuracao do Supabase. Defina EXPO_PUBLIC_SUPABASE_ANON_KEY nas variaveis de ambiente.',
   },
   pets: {
     myPets: 'Meus Pets',

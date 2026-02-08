@@ -21,11 +21,11 @@ export function MedicationFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!name || !dosage || !frequency || !startDate) {
-      Alert.alert(t('common.oops'), t('forms.requiredFields'));
+      Alert.alert(t('common.error'), t('forms.requiredFields'));
       return;
     }
     if (isNaN(Number(frequency)) || Number(frequency) <= 0) {
-      Alert.alert(t('common.oops'), t('forms.invalidFrequency'));
+      Alert.alert(t('common.error'), t('forms.invalidFrequency'));
       return;
     }
     setLoading(true);
@@ -38,7 +38,7 @@ export function MedicationFormScreen({ navigation, route }: Props) {
         end_date: endDate || undefined,
         notes: notes || undefined,
       });
-      Alert.alert('', t('forms.medicationSaved'));
+      Alert.alert(t('common.success'), t('forms.medicationSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);

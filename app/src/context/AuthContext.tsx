@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { tokenStorage, authApi, enableDemoMode, disableDemoMode, isDemoMode } from '../api';
-import { supabase, OAUTH_REDIRECT_URL } from '../api/supabase';
+import { supabase, OAUTH_REDIRECT_URL, isSupabaseConfigured } from '../api/supabase';
 import { DEMO_USER } from '../api/demo-data';
 import { API_BASE_URL } from '../api/config';
 import type { User } from '../api/types';
@@ -12,6 +13,7 @@ interface AuthState {
   loading: boolean;
   demoMode: boolean;
   backendReachable: boolean;
+  googleAvailable: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
@@ -25,6 +27,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   demoMode: false,
   backendReachable: false,
+  googleAvailable: false,
   login: async () => {},
   register: async () => {},
   loginWithGoogle: async () => {},
@@ -90,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
 
     // Listen for Supabase auth state changes (Google OAuth callback)
+    if (!isSupabaseConfigured) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const email = session.user.email || '';
@@ -135,13 +139,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: OAUTH_REDIRECT_URL,
-      },
-    });
-    if (error) throw new Error(error.message);
+    if (!isSupabaseConfigured) {
+      throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY not set. Configure Supabase to enable Google Sign-In.');
+    }
+
+    if (Platform.OS === 'web') {
+      // On web, signInWithOAuth redirects the browser
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: OAUTH_REDIRECT_URL,
+        },
+      });
+      if (error) throw new Error(error.message);
+    } else {
+      // On native, open OAuth in an in-app browser
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: OAUTH_REDIRECT_URL,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          OAUTH_REDIRECT_URL,
+        );
+        if (result.type === 'success' && result.url) {
+          // Extract tokens from the redirect URL
+          const url = new URL(result.url);
+          const hashParams = new URLSearchParams(url.hash.replace('#', ''));
+          const accessToken = hashParams.get('access_token');
+          if (accessToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: hashParams.get('refresh_token') || '',
+            });
+            if (sessionError) throw new Error(sessionError.message);
+          }
+        }
+      }
+    }
   }, []);
 
   const enterDemoMode = useCallback(() => {
@@ -163,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, token, loading, demoMode, backendReachable,
+      googleAvailable: isSupabaseConfigured && backendReachable,
       login, register, loginWithGoogle, enterDemoMode, logout,
     }}>
       {children}

@@ -24,13 +24,13 @@ export function SymptomFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!type) {
-      Alert.alert(t('common.oops'), t('forms.symptomRequired'));
+      Alert.alert(t('common.error'), t('forms.symptomRequired'));
       return;
     }
     setLoading(true);
     try {
       await symptomsApi.create(petId, { type, severity, notes: notes || undefined });
-      Alert.alert('', t('forms.symptomSaved'));
+      Alert.alert(t('common.success'), t('forms.symptomSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);
