@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, fontSize, borderRadius } from '../../theme';
@@ -85,11 +86,30 @@ export function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>{t('settings.title')}</Text>
+      {/* Gradient header */}
+      <LinearGradient
+        colors={[...colors.primaryGradient]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.heroRow}>
+          <View style={styles.heroIconCircle}>
+            <Ionicons name="settings" size={26} color={colors.primary} />
+          </View>
+          <View>
+            <Text style={styles.heroTitle}>{t('settings.title')}</Text>
+            <Text style={styles.heroSub}>PWellTrack v1.0</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Language Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="language" size={18} color={colors.primary} />
+          <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+        </View>
         <View style={styles.card}>
           <TouchableOpacity
             style={[
@@ -100,7 +120,9 @@ export function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.languageRow}>
-              <Text style={styles.languageFlag}>EN</Text>
+              <View style={[styles.flagCircle, selectedLanguage === 'en' && styles.flagCircleActive]}>
+                <Text style={styles.languageFlag}>EN</Text>
+              </View>
               <Text
                 style={[
                   styles.languageLabel,
@@ -126,7 +148,9 @@ export function SettingsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.languageRow}>
-              <Text style={styles.languageFlag}>PT</Text>
+              <View style={[styles.flagCircle, selectedLanguage === 'pt' && styles.flagCircleActive]}>
+                <Text style={styles.languageFlag}>PT</Text>
+              </View>
               <Text
                 style={[
                   styles.languageLabel,
@@ -145,21 +169,42 @@ export function SettingsScreen() {
 
       {/* Notifications Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings.notifications')}</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="notifications" size={18} color={colors.warning} />
+          <Text style={styles.sectionTitle}>{t('settings.notifications')}</Text>
+        </View>
         <View style={styles.card}>
           <TouchableOpacity style={styles.notifRow} onPress={handleEnableNotifs} activeOpacity={0.7}>
-            <Ionicons name="notifications-outline" size={22} color={colors.primary} />
-            <Text style={styles.optionText}>{t('settings.enableNotifications')}</Text>
-            <Ionicons name={notifsEnabled ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={notifsEnabled ? colors.success : colors.textMuted} />
+            <View style={[styles.notifIconCircle, notifsEnabled && styles.notifIconCircleActive]}>
+              <Ionicons
+                name={notifsEnabled ? 'notifications' : 'notifications-outline'}
+                size={20}
+                color={notifsEnabled ? colors.warning : colors.textMuted}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.optionText}>{t('settings.enableNotifications')}</Text>
+              {notifsEnabled && (
+                <Text style={styles.notifCount}>{scheduledCount} {t('settings.remindersScheduled')}</Text>
+              )}
+            </View>
+            <View style={[styles.toggleCircle, notifsEnabled && styles.toggleCircleActive]}>
+              <Ionicons
+                name={notifsEnabled ? 'checkmark' : 'close'}
+                size={14}
+                color={notifsEnabled ? colors.white : colors.textMuted}
+              />
+            </View>
           </TouchableOpacity>
-          {notifsEnabled && (
-            <Text style={styles.notifCount}>{scheduledCount} {t('settings.remindersScheduled')}</Text>
-          )}
         </View>
       </View>
 
-      {/* Logout Section */}
+      {/* Account Section */}
       <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="person" size={18} color={colors.danger} />
+          <Text style={styles.sectionTitle}>Account / Conta</Text>
+        </View>
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
@@ -167,6 +212,7 @@ export function SettingsScreen() {
         >
           <Ionicons name="log-out-outline" size={22} color={colors.danger} />
           <Text style={styles.logoutText}>{t('settings.logout')}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.danger + '60'} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -183,20 +229,48 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl + spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  header: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: spacing.xl,
+  heroCard: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  heroTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '800',
+    color: colors.white,
+  },
+  heroSub: {
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   section: {
     marginBottom: spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   sectionTitle: {
     fontSize: fontSize.md,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
     marginLeft: spacing.xs,
   },
   card: {
@@ -217,23 +291,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   languageOptionActive: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary + '08',
   },
   languageRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  languageFlag: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    color: colors.primary,
+  flagCircle: {
     width: 36,
-    textAlign: 'center',
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  flagCircleActive: {
+    backgroundColor: colors.primary + '20',
+  },
+  languageFlag: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
   languageLabel: {
     fontSize: fontSize.lg,
     color: colors.textPrimary,
-    marginLeft: spacing.sm,
   },
   languageLabelActive: {
     fontWeight: '600',
@@ -250,26 +333,46 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
   },
+  notifIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.textMuted + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  notifIconCircleActive: {
+    backgroundColor: colors.warningLight,
+  },
   optionText: {
-    flex: 1,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     color: colors.textPrimary,
-    marginLeft: spacing.sm,
+    fontWeight: '500',
   },
   notifCount: {
     fontSize: fontSize.sm,
     color: colors.textSecondary,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
+    marginTop: 2,
+  },
+  toggleCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.textMuted + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleCircleActive: {
+    backgroundColor: colors.success,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -277,7 +380,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoutText: {
-    fontSize: fontSize.lg,
+    flex: 1,
+    fontSize: fontSize.md,
     fontWeight: '600',
     color: colors.danger,
     marginLeft: spacing.sm,
