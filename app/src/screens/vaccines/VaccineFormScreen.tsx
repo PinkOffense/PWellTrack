@@ -20,7 +20,7 @@ export function VaccineFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!name || !dateAdministered) {
-      Alert.alert(t('common.oops'), t('forms.vaccineRequired'));
+      Alert.alert(t('common.error'), t('forms.vaccineRequired'));
       return;
     }
     setLoading(true);
@@ -32,7 +32,7 @@ export function VaccineFormScreen({ navigation, route }: Props) {
         clinic: clinic || undefined,
         notes: notes || undefined,
       });
-      Alert.alert('', t('forms.vaccineSaved'));
+      Alert.alert(t('common.success'), t('forms.vaccineSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);

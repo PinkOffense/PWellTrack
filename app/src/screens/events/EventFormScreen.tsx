@@ -29,11 +29,11 @@ export function EventFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!title || !datetimeStart) {
-      Alert.alert(t('common.oops'), t('forms.eventRequired'));
+      Alert.alert(t('common.error'), t('forms.eventRequired'));
       return;
     }
     if (duration && (isNaN(Number(duration)) || Number(duration) <= 0)) {
-      Alert.alert(t('common.oops'), t('forms.invalidDuration'));
+      Alert.alert(t('common.error'), t('forms.invalidDuration'));
       return;
     }
     setLoading(true);
@@ -47,7 +47,7 @@ export function EventFormScreen({ navigation, route }: Props) {
         location: location || undefined,
         notes: notes || undefined,
       });
-      Alert.alert('', t('forms.eventSaved'));
+      Alert.alert(t('common.success'), t('forms.eventSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);

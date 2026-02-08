@@ -8,4 +8,7 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 export const OAUTH_REDIRECT_URL =
   process.env.EXPO_PUBLIC_OAUTH_REDIRECT_URL || 'https://pinkoffense.github.io/PWellTrack';
 
+/** True when Supabase credentials are properly configured */
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

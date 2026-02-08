@@ -17,11 +17,11 @@ export function WaterFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!amountMl || isNaN(Number(amountMl)) || Number(amountMl) <= 0) {
-      Alert.alert(t('common.oops'), t('forms.invalidAmount'));
+      Alert.alert(t('common.error'), t('forms.invalidAmount'));
       return;
     }
     if (dailyGoal && (isNaN(Number(dailyGoal)) || Number(dailyGoal) <= 0)) {
-      Alert.alert(t('common.oops'), t('forms.invalidGoal'));
+      Alert.alert(t('common.error'), t('forms.invalidAmount'));
       return;
     }
     setLoading(true);
@@ -30,7 +30,7 @@ export function WaterFormScreen({ navigation, route }: Props) {
         amount_ml: parseFloat(amountMl),
         daily_goal_ml: dailyGoal ? parseFloat(dailyGoal) : undefined,
       });
-      Alert.alert('', t('forms.waterSaved'));
+      Alert.alert(t('common.success'), t('forms.waterSaved'));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);

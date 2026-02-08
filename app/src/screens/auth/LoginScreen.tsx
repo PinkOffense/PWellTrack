@@ -97,7 +97,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 
 export function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
-  const { login, loginWithGoogle, enterDemoMode, backendReachable } = useAuth();
+  const { login, loginWithGoogle, enterDemoMode, backendReachable, googleAvailable } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -242,15 +242,22 @@ export function LoginScreen({ navigation }: Props) {
 
               {/* Google Sign-In button */}
               <TouchableOpacity
-                style={styles.googleBtn}
+                style={[styles.googleBtn, !googleAvailable && styles.googleBtnDisabled]}
                 onPress={() => {
+                  if (!googleAvailable) {
+                    Alert.alert(
+                      t('auth.googleSignIn'),
+                      t('auth.googleNotConfigured'),
+                    );
+                    return;
+                  }
                   loginWithGoogle().catch((e: any) =>
                     Alert.alert(t('auth.googleFailed'), e.message)
                   );
                 }}
               >
-                <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={styles.googleBtnText}>
+                <Ionicons name="logo-google" size={20} color={googleAvailable ? '#DB4437' : colors.textMuted} />
+                <Text style={[styles.googleBtnText, !googleAvailable && styles.googleBtnTextDisabled]}>
                   {t('auth.googleSignIn')}
                 </Text>
               </TouchableOpacity>
@@ -463,6 +470,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textPrimary,
     fontWeight: '600',
+  },
+  googleBtnDisabled: {
+    opacity: 0.5,
+    borderColor: colors.border,
+  },
+  googleBtnTextDisabled: {
+    color: colors.textMuted,
   },
 
   // Demo button
