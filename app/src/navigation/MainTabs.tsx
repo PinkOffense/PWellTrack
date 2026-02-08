@@ -36,8 +36,6 @@ export function MainTabs() {
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'paw';
           if (route.name === 'PetList') iconName = 'paw';
-          else if (route.name === 'Today') iconName = 'today';
-          else if (route.name === 'Health') iconName = 'heart';
           else if (route.name === 'Settings') iconName = 'settings-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -47,16 +45,6 @@ export function MainTabs() {
         name="PetList"
         component={PetListScreen as any}
         options={{ tabBarLabel: t('tabs.pets') }}
-      />
-      <Tab.Screen
-        name="Today"
-        component={PetListScreen as any}
-        options={{ tabBarLabel: 'Today / Hoje' }}
-      />
-      <Tab.Screen
-        name="Health"
-        component={PetListScreen as any}
-        options={{ tabBarLabel: 'Health / Saude' }}
       />
       <Tab.Screen
         name="Settings"
