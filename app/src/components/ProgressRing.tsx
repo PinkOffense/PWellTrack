@@ -12,12 +12,12 @@ interface Props {
 }
 
 export function ProgressRing({ current, goal, unit, label, color = colors.primary, size = 100 }: Props) {
-  const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  const hasGoal = goal > 0;
+  const pct = hasGoal ? Math.min((current / goal) * 100, 100) : 0;
   const displayPct = Math.round(pct);
 
   return (
     <View style={[styles.container, { width: size + 40 }]}>
-      {/* Simple circular progress visualization */}
       <View
         style={[
           styles.ring,
@@ -25,7 +25,7 @@ export function ProgressRing({ current, goal, unit, label, color = colors.primar
             width: size,
             height: size,
             borderRadius: size / 2,
-            borderColor: color + '20',
+            borderColor: hasGoal ? color + '20' : color + '10',
           },
         ]}
       >
@@ -39,27 +39,37 @@ export function ProgressRing({ current, goal, unit, label, color = colors.primar
             },
           ]}
         >
-          <Text style={[styles.pctText, { color }]}>{displayPct}%</Text>
-          <Text style={styles.valueText}>
-            {Math.round(current)}/{Math.round(goal)} {unit}
-          </Text>
+          {hasGoal ? (
+            <>
+              <Text style={[styles.pctText, { color }]}>{displayPct}%</Text>
+              <Text style={styles.valueText}>
+                {Math.round(current)}/{Math.round(goal)} {unit}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.pctText, { color }]}>{Math.round(current)}</Text>
+              <Text style={styles.valueText}>{unit}</Text>
+            </>
+          )}
         </View>
-        {/* Progress bar overlay */}
-        <View
-          style={[
-            styles.progressArc,
-            {
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              borderColor: color,
-              borderTopColor: pct >= 25 ? color : 'transparent',
-              borderRightColor: pct >= 50 ? color : 'transparent',
-              borderBottomColor: pct >= 75 ? color : 'transparent',
-              borderLeftColor: pct >= 100 ? color : 'transparent',
-            },
-          ]}
-        />
+        {hasGoal && (
+          <View
+            style={[
+              styles.progressArc,
+              {
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderColor: color,
+                borderTopColor: pct >= 25 ? color : 'transparent',
+                borderRightColor: pct >= 50 ? color : 'transparent',
+                borderBottomColor: pct >= 75 ? color : 'transparent',
+                borderLeftColor: pct >= 100 ? color : 'transparent',
+              },
+            ]}
+          />
+        )}
       </View>
       <Text style={styles.label}>{label}</Text>
     </View>

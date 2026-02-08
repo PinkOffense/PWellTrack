@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BarChart } from 'react-native-chart-kit';
@@ -10,8 +10,6 @@ import { ScreenContainer, Card, ProgressRing, EmptyState } from '../../component
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'PetDashboard'>;
-
-const chartWidth = Dimensions.get('window').width - 64;
 
 const chartConfig = {
   backgroundColor: '#fff',
@@ -32,6 +30,8 @@ interface QuickAction {
 }
 
 export function PetDashboardScreen({ navigation, route }: Props) {
+  const { width: windowWidth } = useWindowDimensions();
+  const chartWidth = windowWidth - 64;
   const { petId, petName } = route.params as { petId: number; petName: string };
   const [dashboard, setDashboard] = useState<PetDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -186,6 +186,21 @@ export function PetDashboardScreen({ navigation, route }: Props) {
             )}
           </Card>
         </>
+      )}
+
+      {/* Tip card when no data yet */}
+      {dashboard && dashboard.feeding.entries_count === 0 && dashboard.water.entries_count === 0 && (
+        <Card style={styles.tipCard}>
+          <View style={styles.tipRow}>
+            <Ionicons name="bulb-outline" size={22} color={colors.warning} />
+            <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <Text style={styles.tipTitle}>Get started / Comece agora</Text>
+              <Text style={styles.tipText}>
+                Use the actions below to log feeding, water, and more for {petName}.
+              </Text>
+            </View>
+          </View>
+        </Card>
       )}
 
       {/* Quick actions grid */}
@@ -399,5 +414,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  tipCard: {
+    padding: spacing.lg,
+    backgroundColor: colors.warningLight + '40',
+    borderWidth: 1,
+    borderColor: colors.warning + '30',
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  tipTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  tipText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });
