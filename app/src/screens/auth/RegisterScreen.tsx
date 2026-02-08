@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
@@ -95,6 +96,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 }
 
 export function RegisterScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { register, loginWithGoogle } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -113,18 +115,18 @@ export function RegisterScreen({ navigation }: Props) {
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      Alert.alert('Oops!', 'Please fill in all fields / Preencha todos os campos.');
+      Alert.alert(t('common.oops'), t('auth.fillAllFields'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Oops!', 'Password must be at least 6 characters / Senha deve ter pelo menos 6 caracteres.');
+      Alert.alert(t('common.oops'), t('auth.passwordMin'));
       return;
     }
     setLoading(true);
     try {
       await register(name, email.trim().toLowerCase(), password);
     } catch (e: any) {
-      Alert.alert('Registration failed / Falha no cadastro', e.message);
+      Alert.alert(t('auth.registerFailed'), e.message);
     } finally {
       setLoading(false);
     }
@@ -181,25 +183,24 @@ export function RegisterScreen({ navigation }: Props) {
             </View>
 
             {/* Title */}
-            <Text style={styles.title}>Join PWellTrack</Text>
+            <Text style={styles.title}>{t('auth.joinTitle')}</Text>
             <Text style={styles.subtitle}>
-              Create your account{'\n'}
-              Crie sua conta
+              {t('auth.createYourAccount')}
             </Text>
 
             {/* Form card */}
             <View style={styles.formCard}>
               <View style={styles.headerRow}>
                 <Ionicons name="sparkles" size={20} color={colors.accent} />
-                <Text style={styles.headerText}>Get Started / Comece Agora</Text>
+                <Text style={styles.headerText}>{t('auth.getStarted')}</Text>
               </View>
               <Text style={styles.headerSub}>
-                Track your pet's health journey / Acompanhe a saude do seu pet
+                {t('auth.trackJourney')}
               </Text>
 
               <StyledInput
                 icon="person"
-                placeholder="Your name / Seu nome"
+                placeholder={t('auth.name')}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
@@ -207,7 +208,7 @@ export function RegisterScreen({ navigation }: Props) {
 
               <StyledInput
                 icon="mail"
-                placeholder="pet.lover@email.com"
+                placeholder={t('auth.email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -216,14 +217,14 @@ export function RegisterScreen({ navigation }: Props) {
 
               <StyledInput
                 icon="lock-closed"
-                placeholder="Password / Senha (min. 6)"
+                placeholder={t('auth.password')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
               />
 
               <GradientButton
-                title="Create Account / Criar Conta"
+                title={t('auth.register')}
                 onPress={handleRegister}
                 loading={loading}
                 variant="accent"
@@ -232,7 +233,7 @@ export function RegisterScreen({ navigation }: Props) {
               {/* Divider */}
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or / ou</Text>
+                <Text style={styles.dividerText}>{t('common.or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -241,13 +242,13 @@ export function RegisterScreen({ navigation }: Props) {
                 style={styles.googleBtn}
                 onPress={() => {
                   loginWithGoogle().catch((e: any) =>
-                    Alert.alert('Google Sign-In failed', e.message)
+                    Alert.alert(t('auth.googleFailed'), e.message)
                   );
                 }}
               >
                 <Ionicons name="logo-google" size={20} color="#DB4437" />
                 <Text style={styles.googleBtnText}>
-                  Sign up with Google / Registar com Google
+                  {t('auth.googleSignUp')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -258,8 +259,8 @@ export function RegisterScreen({ navigation }: Props) {
               onPress={() => navigation.goBack()}
             >
               <Text style={styles.loginText}>
-                Already have an account?{' '}
-                <Text style={styles.loginBold}>Login / Entrar</Text>
+                {t('auth.hasAccount')}{' '}
+                <Text style={styles.loginBold}>{t('auth.login')}</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>

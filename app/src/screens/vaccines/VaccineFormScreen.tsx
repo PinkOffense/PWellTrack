@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { vaccinesApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing } from '../../theme';
@@ -9,6 +10,7 @@ type Props = NativeStackScreenProps<any, 'VaccineForm'>;
 
 export function VaccineFormScreen({ navigation, route }: Props) {
   const { petId } = route.params as { petId: number };
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [dateAdministered, setDateAdministered] = useState('');
   const [nextDueDate, setNextDueDate] = useState('');
@@ -18,7 +20,7 @@ export function VaccineFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!name || !dateAdministered) {
-      Alert.alert('Oops!', 'Name and date are required / Nome e data sao obrigatorios.');
+      Alert.alert(t('common.oops'), t('forms.vaccineRequired'));
       return;
     }
     setLoading(true);
@@ -30,9 +32,10 @@ export function VaccineFormScreen({ navigation, route }: Props) {
         clinic: clinic || undefined,
         notes: notes || undefined,
       });
+      Alert.alert('', t('forms.vaccineSaved'));
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error / Erro', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
@@ -40,13 +43,13 @@ export function VaccineFormScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>Add Vaccine / Adicionar Vacina</Text>
-      <Input label="Vaccine Name / Nome *" value={name} onChangeText={setName} placeholder="Rabies, V8..." />
-      <DatePickerInput label="Date Administered / Data" value={dateAdministered} onChange={setDateAdministered} required />
-      <DatePickerInput label="Next Due Date / Proxima dose" value={nextDueDate} onChange={setNextDueDate} />
-      <Input label="Clinic / Clinica" value={clinic} onChangeText={setClinic} placeholder="Pet Clinic..." />
-      <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />
-      <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} variant="success" style={{ marginTop: spacing.md }} />
+      <Text style={styles.title}>{t('vaccines.addVaccine')}</Text>
+      <Input label={`${t('vaccines.name')} *`} value={name} onChangeText={setName} placeholder="Rabies, V8..." />
+      <DatePickerInput label={t('vaccines.dateAdministered')} value={dateAdministered} onChange={setDateAdministered} required />
+      <DatePickerInput label={t('vaccines.nextDueDate')} value={nextDueDate} onChange={setNextDueDate} />
+      <Input label={t('vaccines.clinic')} value={clinic} onChangeText={setClinic} placeholder="Pet Clinic..." />
+      <Input label={t('common.notes')} value={notes} onChangeText={setNotes} placeholder="..." multiline />
+      <GradientButton title={t('common.save')} onPress={handleSave} loading={loading} variant="success" style={{ marginTop: spacing.md }} />
     </ScreenContainer>
   );
 }

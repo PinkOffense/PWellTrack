@@ -1,5 +1,4 @@
 export default {
-  // Common
   common: {
     cancel: 'Cancel',
     delete: 'Delete',
@@ -8,10 +7,13 @@ export default {
     add: 'Add',
     loading: 'Loading...',
     error: 'Error',
+    success: 'Success',
     or: 'or',
     noData: 'No data yet',
+    notes: 'Notes',
+    confirm: 'Confirm',
+    oops: 'Oops!',
   },
-  // Auth
   auth: {
     login: 'Login',
     register: 'Create Account',
@@ -21,6 +23,7 @@ export default {
     welcomeBack: 'Welcome back!',
     signInContinue: 'Sign in to continue',
     forgotPassword: 'Forgot password?',
+    forgotPasswordMsg: 'Please contact support to reset your password.',
     tryDemo: 'Try demo',
     noAccount: "Don't have an account?",
     hasAccount: 'Already have an account?',
@@ -33,12 +36,16 @@ export default {
     passwordMin: 'Password must be at least 6 characters.',
     loginFailed: 'Login failed',
     registerFailed: 'Registration failed',
+    offlineMsg: 'Offline - use Demo to explore',
+    googleSignIn: 'Sign in with Google',
+    googleSignUp: 'Sign up with Google',
+    googleFailed: 'Google Sign-In failed',
   },
-  // Pets
   pets: {
     myPets: 'My Pets',
     addPet: 'Add Pet',
     editPet: 'Edit Pet',
+    newPet: 'New Pet',
     name: 'Pet name',
     species: 'Species',
     breed: 'Breed',
@@ -46,34 +53,40 @@ export default {
     sex: 'Sex',
     weight: 'Weight (kg)',
     notes: 'Notes',
+    photo: 'Photo',
+    addPhoto: 'Add Photo',
     dog: 'Dog',
     cat: 'Cat',
     exotic: 'Exotic',
     male: 'Male',
     female: 'Female',
+    sexPlaceholder: 'Male, Female',
     dashboard: 'Dashboard',
     demoMode: 'Demo Mode - Explore with sample data',
     noPetsTitle: 'No pets yet!',
     noPetsSubtitle: 'Add your first pet to start tracking their health.',
   },
-  // Feeding
   feeding: {
     title: 'Feeding',
     addFeeding: 'Add Feeding',
     foodType: 'Food type',
-    actualAmount: 'Actual amount (g)',
+    actualAmount: 'Amount (g)',
     plannedAmount: 'Planned amount (g)',
+    planned: 'planned',
     deleteConfirm: 'Delete this feeding log?',
+    noLogs: 'No feeding logs yet!',
+    noLogsHint: 'Tap + to add a feeding log.',
   },
-  // Water
   water: {
     title: 'Water',
     addWater: 'Add Water',
     amount: 'Amount (ml)',
     dailyGoal: 'Daily goal (ml)',
+    goalLabel: 'Goal',
     deleteConfirm: 'Delete this water log?',
+    noLogs: 'No water logs yet!',
+    noLogsHint: 'Tap + to add a water log.',
   },
-  // Vaccines
   vaccines: {
     title: 'Vaccines',
     addVaccine: 'Add Vaccine',
@@ -81,9 +94,12 @@ export default {
     dateAdministered: 'Date administered',
     nextDueDate: 'Next due date',
     clinic: 'Clinic',
+    administered: 'Administered',
+    nextDue: 'Next',
     deleteConfirm: 'Delete this vaccine record?',
+    noVaccines: 'No vaccines yet!',
+    noVaccinesHint: 'Tap + to add a vaccine record.',
   },
-  // Medications
   medications: {
     title: 'Medications',
     addMedication: 'Add Medication',
@@ -92,10 +108,13 @@ export default {
     frequency: 'Frequency per day',
     startDate: 'Start date',
     endDate: 'End date',
-    ongoing: 'Ongoing',
+    ongoing: 'ongoing',
+    perDay: 'x/day',
+    to: 'to',
     deleteConfirm: 'Delete this medication?',
+    noMeds: 'No medications yet!',
+    noMedsHint: 'Tap + to add a medication.',
   },
-  // Events
   events: {
     title: 'Events',
     addEvent: 'Add Event',
@@ -109,8 +128,9 @@ export default {
     grooming: 'Grooming',
     other: 'Other',
     deleteConfirm: 'Delete this event?',
+    noEvents: 'No events yet!',
+    noEventsHint: 'Tap + to add an event.',
   },
-  // Symptoms
   symptoms: {
     title: 'Symptoms',
     addSymptom: 'Record Symptom',
@@ -120,8 +140,29 @@ export default {
     moderate: 'Moderate',
     severe: 'Severe',
     deleteConfirm: 'Delete this symptom record?',
+    noSymptoms: 'No symptoms recorded!',
+    noSymptomsHint: 'Tap + to record a symptom.',
   },
-  // Dashboard
+  forms: {
+    nameRequired: 'Please enter a name.',
+    invalidWeight: 'Enter a valid weight.',
+    foodTypeRequired: 'Please enter the food type.',
+    invalidAmount: 'Please enter a valid amount.',
+    requiredFields: 'Please fill in all required fields.',
+    invalidFrequency: 'Enter a valid frequency.',
+    invalidDuration: 'Enter a valid duration.',
+    vaccineRequired: 'Name and date are required.',
+    eventRequired: 'Title and date are required.',
+    symptomRequired: 'Symptom type is required.',
+    invalidGoal: 'Enter a valid daily goal.',
+    petSaved: 'Pet saved successfully!',
+    feedingSaved: 'Feeding log saved!',
+    vaccineSaved: 'Vaccine record saved!',
+    waterSaved: 'Water log saved!',
+    medicationSaved: 'Medication saved!',
+    eventSaved: 'Event saved!',
+    symptomSaved: 'Symptom recorded!',
+  },
   dashboard: {
     food: 'Food',
     water: 'Water',
@@ -130,7 +171,6 @@ export default {
     activeMedications: 'Active Medications',
     noUpcoming: 'No upcoming events',
     noActiveMeds: 'No active medications',
-    // New keys
     todayOverview: "Today's Overview",
     statusOverview: 'Status Overview',
     feedingStatus: 'Feeding',
@@ -173,7 +213,6 @@ export default {
     symptoms: 'Symptoms',
     day: 'day',
   },
-  // Pet List badges
   petList: {
     feedingBadge: {
       not_fed: 'Not fed',
@@ -188,7 +227,6 @@ export default {
       no_records: 'No vaccines',
     },
   },
-  // Settings
   settings: {
     title: 'Settings',
     language: 'Language',
@@ -200,7 +238,6 @@ export default {
     enableNotifications: 'Enable reminders',
     remindersScheduled: 'reminders scheduled',
   },
-  // Tabs
   tabs: {
     pets: 'Pets',
     settings: 'Settings',

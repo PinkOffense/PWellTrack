@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
@@ -95,6 +96,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 }
 
 export function LoginScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { login, loginWithGoogle, enterDemoMode, backendReachable } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -112,14 +114,14 @@ export function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Oops!', 'Please fill in all fields / Preencha todos os campos.');
+      Alert.alert(t('common.oops'), t('auth.fillAllFields'));
       return;
     }
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (e: any) {
-      Alert.alert('Login failed / Falha no login', e.message);
+      Alert.alert(t('auth.loginFailed'), e.message);
     } finally {
       setLoading(false);
     }
@@ -175,8 +177,7 @@ export function LoginScreen({ navigation }: Props) {
             {/* Title with gradient feel */}
             <Text style={styles.title}>PWellTrack</Text>
             <Text style={styles.subtitle}>
-              Your pet's health companion{'\n'}
-              O companheiro de saude do seu pet
+              {t('auth.petCompanion')}
             </Text>
 
             {/* Offline banner */}
@@ -184,7 +185,7 @@ export function LoginScreen({ navigation }: Props) {
               <View style={styles.offlineBanner}>
                 <Ionicons name="cloud-offline" size={16} color="#F59E0B" />
                 <Text style={styles.offlineBannerText}>
-                  Offline - use Demo to explore / Offline - use Demo para explorar
+                  {t('auth.offlineMsg')}
                 </Text>
               </View>
             )}
@@ -193,15 +194,15 @@ export function LoginScreen({ navigation }: Props) {
             <View style={styles.formCard}>
               <View style={styles.welcomeRow}>
                 <Ionicons name="sparkles" size={20} color={colors.primary} />
-                <Text style={styles.welcomeText}>Welcome back! / Bem-vindo!</Text>
+                <Text style={styles.welcomeText}>{t('auth.welcomeBack')}</Text>
               </View>
               <Text style={styles.welcomeSub}>
-                Sign in to continue / Entre para continuar
+                {t('auth.signInContinue')}
               </Text>
 
               <StyledInput
                 icon="mail"
-                placeholder="pet.lover@email.com"
+                placeholder={t('auth.email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -210,7 +211,7 @@ export function LoginScreen({ navigation }: Props) {
 
               <StyledInput
                 icon="lock-closed"
-                placeholder="Password / Senha"
+                placeholder={t('auth.password')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -219,15 +220,15 @@ export function LoginScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={styles.forgotBtn}
                 onPress={() => Alert.alert(
-                  'Forgot Password / Esqueceu a Senha',
-                  'Please contact support to reset your password.\nContacte o suporte para redefinir sua senha.'
+                  t('auth.forgotPassword'),
+                  t('auth.forgotPasswordMsg')
                 )}
               >
-                <Text style={styles.forgotText}>Forgot password? / Esqueceu a senha?</Text>
+                <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
 
               <GradientButton
-                title="Login / Entrar"
+                title={t('auth.login')}
                 onPress={handleLogin}
                 loading={loading}
               />
@@ -235,7 +236,7 @@ export function LoginScreen({ navigation }: Props) {
               {/* Divider */}
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or / ou</Text>
+                <Text style={styles.dividerText}>{t('common.or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -244,13 +245,13 @@ export function LoginScreen({ navigation }: Props) {
                 style={styles.googleBtn}
                 onPress={() => {
                   loginWithGoogle().catch((e: any) =>
-                    Alert.alert('Google Sign-In failed', e.message)
+                    Alert.alert(t('auth.googleFailed'), e.message)
                   );
                 }}
               >
                 <Ionicons name="logo-google" size={20} color="#DB4437" />
                 <Text style={styles.googleBtnText}>
-                  Sign in with Google / Entrar com Google
+                  {t('auth.googleSignIn')}
                 </Text>
               </TouchableOpacity>
 
@@ -260,7 +261,7 @@ export function LoginScreen({ navigation }: Props) {
                 onPress={enterDemoMode}
               >
                 <Ionicons name="play-circle" size={20} color={colors.primary} />
-                <Text style={styles.demoBtnText}>Try demo / Experimentar demo</Text>
+                <Text style={styles.demoBtnText}>{t('auth.tryDemo')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -270,8 +271,8 @@ export function LoginScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Register')}
             >
               <Text style={styles.registerText}>
-                Don't have an account?{' '}
-                <Text style={styles.registerBold}>Create Account / Cadastrar</Text>
+                {t('auth.noAccount')}{' '}
+                <Text style={styles.registerBold}>{t('auth.register')}</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>

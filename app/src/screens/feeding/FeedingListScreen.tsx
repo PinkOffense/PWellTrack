@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { feedingApi, FeedingLog } from '../../api';
 import { ScreenContainer, Card, EmptyState } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
@@ -18,6 +19,7 @@ import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 type Props = NativeStackScreenProps<any, 'FeedingList'>;
 
 export function FeedingListScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { petId, petName } = route.params as { petId: number; petName: string };
   const [logs, setLogs] = useState<FeedingLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,27 +29,27 @@ export function FeedingListScreen({ navigation, route }: Props) {
       const data = await feedingApi.list(petId);
       setLogs(data);
     } catch (e: any) {
-      Alert.alert('Error / Erro', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
-  }, [petId]);
+  }, [petId, t]);
 
   const handleDelete = (id: number) => {
     Alert.alert(
-      'Delete / Apagar',
-      'Delete this feeding log? / Apagar este registo?',
+      t('common.delete'),
+      t('feeding.deleteConfirm'),
       [
-        { text: 'Cancel / Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete / Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await feedingApi.delete(id);
               fetchLogs();
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              Alert.alert(t('common.error'), e.message);
             }
           },
         },
@@ -71,14 +73,14 @@ export function FeedingListScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer scroll={false}>
-      <Text style={styles.title}>Feeding / Alimentacao</Text>
+      <Text style={styles.title}>{t('feeding.title')}</Text>
       <Text style={styles.subtitle}>{petName}</Text>
 
       {logs.length === 0 ? (
         <EmptyState
           icon="restaurant"
-          title="No feeding logs yet! / Nenhum registro ainda!"
-          subtitle="Tap + to add a feeding log.\nToque + para adicionar um registro."
+          title={t('feeding.noLogs')}
+          subtitle={t('feeding.noLogsHint')}
         />
       ) : (
         <FlatList
@@ -87,34 +89,35 @@ export function FeedingListScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity activeOpacity={0.85} onLongPress={() => handleDelete(item.id)}>
-              <Card style={styles.card}>
-                <View style={styles.row}>
-                  <View style={styles.iconCircle}>
-                    <Ionicons name="restaurant" size={20} color={colors.primary} />
-                  </View>
-                  <View style={styles.info}>
-                    <Text style={styles.foodType}>{item.food_type}</Text>
-                    <Text style={styles.meta}>
-                      {item.actual_amount_grams}g
-                      {item.planned_amount_grams
-                        ? ` / ${item.planned_amount_grams}g planned`
-                        : ''}
-                    </Text>
-                    <Text style={styles.date}>
-                      {new Date(item.datetime).toLocaleDateString()} -{' '}
-                      {new Date(item.datetime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
+            <Card style={styles.card}>
+              <View style={styles.row}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="restaurant" size={20} color={colors.primary} />
                 </View>
-                {item.notes ? (
-                  <Text style={styles.notes}>{item.notes}</Text>
-                ) : null}
-              </Card>
-            </TouchableOpacity>
+                <View style={styles.info}>
+                  <Text style={styles.foodType}>{item.food_type}</Text>
+                  <Text style={styles.meta}>
+                    {item.actual_amount_grams}g
+                    {item.planned_amount_grams
+                      ? ` / ${item.planned_amount_grams}g ${t('feeding.planned')}`
+                      : ''}
+                  </Text>
+                  <Text style={styles.date}>
+                    {new Date(item.datetime).toLocaleDateString()} -{' '}
+                    {new Date(item.datetime).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </TouchableOpacity>
+              </View>
+              {item.notes ? (
+                <Text style={styles.notes}>{item.notes}</Text>
+              ) : null}
+            </Card>
           )}
         />
       )}
@@ -192,6 +195,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.sm,
     fontStyle: 'italic',
+  },
+  deleteBtn: {
+    padding: spacing.sm,
+    marginLeft: spacing.sm,
   },
   fab: {
     position: 'absolute',

@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { eventsApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'EventForm'>;
 
-const EVENT_TYPES = ['vet_visit', 'vaccine', 'grooming', 'other'];
+const EVENT_TYPE_KEYS = ['vet_visit', 'vaccine', 'grooming', 'other'] as const;
+const EVENT_TYPE_I18N: Record<string, string> = {
+  vet_visit: 'events.vetVisit',
+  vaccine: 'events.vaccine',
+  grooming: 'events.grooming',
+  other: 'events.other',
+};
 
 export function EventFormScreen({ navigation, route }: Props) {
   const { petId } = route.params as { petId: number };
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [type, setType] = useState('vet_visit');
   const [datetimeStart, setDatetimeStart] = useState('');
@@ -21,11 +29,11 @@ export function EventFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!title || !datetimeStart) {
-      Alert.alert('Oops!', 'Title and date are required / Titulo e data sao obrigatorios.');
+      Alert.alert(t('common.oops'), t('forms.eventRequired'));
       return;
     }
     if (duration && (isNaN(Number(duration)) || Number(duration) <= 0)) {
-      Alert.alert('Oops!', 'Enter a valid duration / Digite uma duracao valida.');
+      Alert.alert(t('common.oops'), t('forms.invalidDuration'));
       return;
     }
     setLoading(true);
@@ -39,9 +47,10 @@ export function EventFormScreen({ navigation, route }: Props) {
         location: location || undefined,
         notes: notes || undefined,
       });
+      Alert.alert('', t('forms.eventSaved'));
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error / Erro', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
@@ -49,29 +58,29 @@ export function EventFormScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>Add Event / Adicionar Evento</Text>
-      <Input label="Title / Titulo *" value={title} onChangeText={setTitle} placeholder="Vet checkup..." />
+      <Text style={styles.title}>{t('events.addEvent')}</Text>
+      <Input label={`${t('events.eventTitle')} *`} value={title} onChangeText={setTitle} placeholder="Vet checkup..." />
 
-      <Text style={styles.sectionLabel}>Type / Tipo</Text>
+      <Text style={styles.sectionLabel}>{t('events.type')}</Text>
       <View style={styles.typeRow}>
-        {EVENT_TYPES.map((t) => (
+        {EVENT_TYPE_KEYS.map((k) => (
           <TouchableOpacity
-            key={t}
-            style={[styles.typeChip, type === t && styles.typeChipActive]}
-            onPress={() => setType(t)}
+            key={k}
+            style={[styles.typeChip, type === k && styles.typeChipActive]}
+            onPress={() => setType(k)}
           >
-            <Text style={[styles.typeLabel, type === t && styles.typeLabelActive]}>
-              {t.replace('_', ' ')}
+            <Text style={[styles.typeLabel, type === k && styles.typeLabelActive]}>
+              {t(EVENT_TYPE_I18N[k])}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <DatePickerInput label="Date & Time / Data e Hora" value={datetimeStart} onChange={setDatetimeStart} mode="datetime" required />
-      <Input label="Duration (min) / Duracao (min)" value={duration} onChangeText={setDuration} placeholder="30" keyboardType="number-pad" />
-      <Input label="Location / Local" value={location} onChangeText={setLocation} placeholder="Pet Clinic..." />
-      <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />
-      <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} variant="accent" style={{ marginTop: spacing.md }} />
+      <DatePickerInput label={t('events.datetime')} value={datetimeStart} onChange={setDatetimeStart} mode="datetime" required />
+      <Input label={t('events.duration')} value={duration} onChangeText={setDuration} placeholder="30" keyboardType="number-pad" />
+      <Input label={t('events.location')} value={location} onChangeText={setLocation} placeholder="Pet Clinic..." />
+      <Input label={t('common.notes')} value={notes} onChangeText={setNotes} placeholder="..." multiline />
+      <GradientButton title={t('common.save')} onPress={handleSave} loading={loading} variant="accent" style={{ marginTop: spacing.md }} />
     </ScreenContainer>
   );
 }
@@ -82,6 +91,6 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   typeChip: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
   typeChipActive: { backgroundColor: colors.accent + '20', borderColor: colors.accent },
-  typeLabel: { fontSize: fontSize.sm, color: colors.textMuted, textTransform: 'capitalize' },
+  typeLabel: { fontSize: fontSize.sm, color: colors.textMuted },
   typeLabelActive: { color: colors.accent, fontWeight: '700' },
 });

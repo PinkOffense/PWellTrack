@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { medicationsApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing } from '../../theme';
@@ -9,6 +10,7 @@ type Props = NativeStackScreenProps<any, 'MedicationForm'>;
 
 export function MedicationFormScreen({ navigation, route }: Props) {
   const { petId } = route.params as { petId: number };
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [frequency, setFrequency] = useState('');
@@ -19,11 +21,11 @@ export function MedicationFormScreen({ navigation, route }: Props) {
 
   const handleSave = async () => {
     if (!name || !dosage || !frequency || !startDate) {
-      Alert.alert('Oops!', 'Fill required fields / Preencha os campos obrigatorios.');
+      Alert.alert(t('common.oops'), t('forms.requiredFields'));
       return;
     }
     if (isNaN(Number(frequency)) || Number(frequency) <= 0) {
-      Alert.alert('Oops!', 'Enter a valid frequency / Digite uma frequencia valida.');
+      Alert.alert(t('common.oops'), t('forms.invalidFrequency'));
       return;
     }
     setLoading(true);
@@ -36,9 +38,10 @@ export function MedicationFormScreen({ navigation, route }: Props) {
         end_date: endDate || undefined,
         notes: notes || undefined,
       });
+      Alert.alert('', t('forms.medicationSaved'));
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error / Erro', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
@@ -46,14 +49,14 @@ export function MedicationFormScreen({ navigation, route }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>Add Medication / Adicionar Remedio</Text>
-      <Input label="Name / Nome *" value={name} onChangeText={setName} placeholder="Amoxicillin..." />
-      <Input label="Dosage / Dosagem *" value={dosage} onChangeText={setDosage} placeholder="5 mg" />
-      <Input label="Frequency per day / Vezes ao dia *" value={frequency} onChangeText={setFrequency} placeholder="2" keyboardType="number-pad" />
-      <DatePickerInput label="Start Date / Data Inicio" value={startDate} onChange={setStartDate} required />
-      <DatePickerInput label="End Date / Data Fim" value={endDate} onChange={setEndDate} />
-      <Input label="Notes / Notas" value={notes} onChangeText={setNotes} placeholder="Any notes..." multiline />
-      <GradientButton title="Save / Salvar" onPress={handleSave} loading={loading} style={{ marginTop: spacing.md }} />
+      <Text style={styles.title}>{t('medications.addMedication')}</Text>
+      <Input label={`${t('medications.name')} *`} value={name} onChangeText={setName} placeholder="Amoxicillin..." />
+      <Input label={`${t('medications.dosage')} *`} value={dosage} onChangeText={setDosage} placeholder="5 mg" />
+      <Input label={`${t('medications.frequency')} *`} value={frequency} onChangeText={setFrequency} placeholder="2" keyboardType="number-pad" />
+      <DatePickerInput label={`${t('medications.startDate')} *`} value={startDate} onChange={setStartDate} required />
+      <DatePickerInput label={t('medications.endDate')} value={endDate} onChange={setEndDate} />
+      <Input label={t('common.notes')} value={notes} onChangeText={setNotes} placeholder="..." multiline />
+      <GradientButton title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: spacing.md }} />
     </ScreenContainer>
   );
 }
