@@ -62,7 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for Supabase auth callback (Google OAuth redirect)
     if (!isSupabaseConfigured || !supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      // Handle both SIGNED_IN (new login) and INITIAL_SESSION (page reload after redirect)
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        // Skip if we already have a user from stored token
+        if (tokenStorage.get()) return;
         const email = session.user.email || '';
         const name =
           session.user.user_metadata?.full_name ||

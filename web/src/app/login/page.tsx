@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -20,12 +20,19 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const { t } = useTranslation();
-  const { login, loginWithGoogle, backendReachable, googleAvailable } = useAuth();
+  const { user, login, loginWithGoogle, backendReachable, googleAvailable } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect to /pets when user is authenticated (e.g. after Google OAuth callback)
+  useEffect(() => {
+    if (user) {
+      router.replace('/pets');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
