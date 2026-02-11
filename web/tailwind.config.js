@@ -16,6 +16,7 @@ module.exports = {
         float: 'float 3s ease-in-out infinite',
         fadeIn: 'fadeIn 0.4s ease-out',
         slideUp: 'slideUp 0.5s ease-out',
+        slideDown: 'slideDown 0.4s ease-out',
       },
       keyframes: {
         float: {
@@ -29,6 +30,10 @@ module.exports = {
         slideUp: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideDown: {
+          '0%': { opacity: '0', transform: 'translateY(-16px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
       },
     },

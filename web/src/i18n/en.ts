@@ -128,6 +128,12 @@ export default {
     activeMeds: 'Active Medications',
     quickActions: 'Quick Actions',
   },
+  notifications: {
+    medicationReminder: 'Medication',
+    feedingReminder: 'Feeding Time',
+    medicationMsg: 'Time to give {{pet}} their medication: {{med}} ({{dosage}})',
+    feedingMsg: 'Time to feed {{pet}}!',
+  },
   settings: {
     title: 'Settings',
     language: 'Language',

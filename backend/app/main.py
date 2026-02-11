@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, pets, feeding, water, vaccines, medications, events, symptoms
+from app.routers import auth, pets, feeding, water, vaccines, medications, events, symptoms, notifications
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -17,7 +18,10 @@ async def lifespan(app: FastAPI):
     # Create tables on startup (for local dev with SQLite)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Start background reminder loop
+    task = asyncio.create_task(notifications.reminder_loop())
     yield
+    task.cancel()
 
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
@@ -40,6 +44,7 @@ app.include_router(vaccines.router)
 app.include_router(medications.router)
 app.include_router(events.router)
 app.include_router(symptoms.router)
+app.include_router(notifications.router)
 
 
 @app.get("/")
