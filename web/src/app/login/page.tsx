@@ -28,130 +28,122 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect to /pets when user is authenticated (e.g. after Google OAuth callback)
   useEffect(() => {
-    if (user) {
-      router.replace('/pets');
-    }
+    if (user) router.replace('/pets');
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email || !password) {
-      setError(t('auth.fillAllFields'));
-      return;
-    }
+    if (!email || !password) { setError(t('auth.fillAllFields')); return; }
     setLoading(true);
     try {
       await login(email.trim().toLowerCase(), password);
       router.replace('/pets');
     } catch (err: any) {
       setError(err.message || t('auth.loginFailed'));
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleGoogle = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    try { await loginWithGoogle(); } catch (err: any) { setError(err.message); }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-green-50/50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Hero */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 animate-float">
-            <PawPrint className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-primary">PWellTrack</h1>
-          <p className="text-txt-secondary mt-1">{t('auth.signInContinue')}</p>
-        </div>
-
-        {/* Offline banner */}
-        {!backendReachable && (
-          <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium animate-fadeIn">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            {t('auth.offlineMsg')}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="card space-y-4 animate-slideUp">
-          <div>
-            <h2 className="text-xl font-bold text-txt">{t('auth.welcomeBack')}</h2>
-            <p className="text-sm text-txt-muted">{t('auth.signInContinue')}</p>
+    <div className="min-h-screen bg-gradient-to-b from-violet-50/80 via-white to-emerald-50/40 flex flex-col">
+      {/* Main content */}
+      <div className="flex-1 flex items-center justify-center px-4 pt-6 pb-0">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-violet-500/25 animate-float">
+              <PawPrint className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              PWellTrack
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">{t('auth.signInContinue')}</p>
           </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium animate-fadeIn">
-              {error}
+          {/* Offline banner */}
+          {!backendReachable && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2.5 rounded-xl mb-3 text-sm font-medium animate-fadeIn">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {t('auth.offlineMsg')}
             </div>
           )}
 
-          {/* Google Sign-In */}
-          {googleAvailable && (
-            <>
-              <button
-                type="button"
-                onClick={handleGoogle}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all font-medium text-txt"
-              >
-                <GoogleIcon />
-                {t('auth.googleSignIn')}
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-sm text-txt-muted">{t('common.or')}</span>
-                <div className="flex-1 h-px bg-gray-200" />
+          {/* Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-violet-500/[0.06] border border-violet-100/60 p-5 animate-slideUp">
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-600 px-3 py-2.5 rounded-xl text-sm font-medium mb-4 animate-fadeIn">
+                {error}
               </div>
-            </>
-          )}
+            )}
 
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder={t('auth.email')}
-              className="input pl-10"
-              autoComplete="email"
-            />
+            {/* Email/Password */}
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder={t('auth.email')}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 outline-none transition-all text-sm placeholder:text-gray-400"
+                  autoComplete="email"
+                />
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder={t('auth.password')}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 outline-none transition-all text-sm placeholder:text-gray-400"
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold text-sm hover:from-violet-600 hover:to-purple-700 transition-all shadow-md shadow-violet-500/20 hover:shadow-lg hover:shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+              >
+                {loading ? t('common.loading') : t('auth.login')}
+              </button>
+            </form>
+
+            {/* Divider + Google at bottom */}
+            {googleAvailable && (
+              <>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">{t('common.or')}</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all font-medium text-sm text-gray-600 active:scale-[0.98]"
+                >
+                  <GoogleIcon />
+                  {t('auth.googleSignIn')}
+                </button>
+              </>
+            )}
           </div>
 
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder={t('auth.password')}
-              className="input pl-10"
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? t('common.loading') : t('auth.login')}
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-sm text-txt-secondary">
-          {t('auth.noAccount')}{' '}
-          <Link href="/register" className="text-primary font-semibold hover:underline">
-            {t('auth.register')}
-          </Link>
-        </p>
+          <p className="text-center mt-4 text-sm text-gray-500">
+            {t('auth.noAccount')}{' '}
+            <Link href="/register" className="text-violet-600 font-semibold hover:text-violet-700 hover:underline transition-colors">
+              {t('auth.register')}
+            </Link>
+          </p>
+        </div>
       </div>
 
-      {/* Animated farm scene */}
+      {/* Farm scene anchored at bottom */}
       <FarmScene />
     </div>
   );
