@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /pets/
+Disallow: /settings
+
+Sitemap: https://p-well-track.vercel.app/sitemap.xml

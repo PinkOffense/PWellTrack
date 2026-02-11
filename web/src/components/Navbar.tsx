@@ -23,13 +23,18 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#f0ecff]" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 4px 20px rgba(155,142,200,0.06)' }}>
+    <nav
+      role="navigation"
+      aria-label="Main navigation"
+      className="sticky top-0 z-50 border-b border-[#f0ecff]"
+      style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 4px 20px rgba(155,142,200,0.06)' }}
+    >
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/pets" className="flex items-center gap-2.5">
+        <Link href="/pets" className="flex items-center gap-2.5" aria-label="PWellTrack Home">
           <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#f5f0ff] to-[#ece5ff]">
             <Image
               src="/ferret-sleeping.png"
-              alt="PWellTrack"
+              alt="PWellTrack logo"
               width={36}
               height={36}
               className="w-full h-full object-contain"
@@ -45,21 +50,23 @@ export function Navbar() {
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? 'page' : undefined}
+                aria-label={label}
                 className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all duration-300
                   ${active ? 'bg-primary/10 text-primary shadow-sm' : 'text-txt-secondary hover:bg-primary/5 hover:text-primary'}`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden sm:inline">{label}</span>
               </Link>
             );
           })}
           <button
             className="relative p-2 rounded-xl text-txt-muted hover:bg-primary/5 hover:text-primary transition-all duration-300"
-            title={t('notifications.feedingReminder')}
+            aria-label={`Notifications${notifications.length > 0 ? ` (${notifications.length})` : ''}`}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-4 h-4" aria-hidden="true" />
             {notifications.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-fadeIn">
+              <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-fadeIn">
                 {notifications.length}
               </span>
             )}
@@ -67,9 +74,9 @@ export function Navbar() {
           <button
             onClick={logout}
             className="ml-1 p-2 rounded-xl text-txt-muted hover:bg-red-50 hover:text-red-500 transition-all duration-300"
-            title={t('settings.logout')}
+            aria-label={t('settings.logout')}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>

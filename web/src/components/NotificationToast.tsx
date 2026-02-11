@@ -15,7 +15,12 @@ export function NotificationToast({ notifications, onDismiss }: Props) {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-[100] flex flex-col gap-2.5 max-w-[360px] w-full pointer-events-none">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Notifications"
+      className="fixed top-20 right-4 z-[100] flex flex-col gap-2.5 max-w-[360px] w-full pointer-events-none"
+    >
       {notifications.map((n) => (
         <div
           key={n.id}
@@ -24,9 +29,10 @@ export function NotificationToast({ notifications, onDismiss }: Props) {
         >
           <button
             onClick={() => onDismiss(n.id)}
+            aria-label="Dismiss notification"
             className="absolute top-3 right-3 p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-50 transition-all duration-200"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
 
           <div className="flex items-start gap-3">
