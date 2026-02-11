@@ -85,6 +85,7 @@ export const petsApi = {
     if (!res.ok) throw new Error('Upload failed');
     return res.json() as Promise<Pet>;
   },
+  deletePhoto: (id: number) => request<Pet>('DELETE', `/pets/${id}/photo`),
 };
 
 // ── Feeding API ──

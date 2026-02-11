@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
@@ -9,7 +9,7 @@ import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
-import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight } from 'lucide-react';
+import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
 function getFeedingStatus(d: PetDashboard | null) {
@@ -54,10 +54,21 @@ export default function PetsPage() {
   const [formData, setFormData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [photoMenuId, setPhotoMenuId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoTargetRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
   }, [user, authLoading, router]);
+
+  // Close photo menu on outside click
+  useEffect(() => {
+    if (photoMenuId === null) return;
+    const close = () => setPhotoMenuId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [photoMenuId]);
 
   const loadPets = async () => {
     try {
@@ -107,6 +118,32 @@ export default function PetsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleUploadPhoto = (petId: number) => {
+    photoTargetRef.current = petId;
+    setPhotoMenuId(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const petId = photoTargetRef.current;
+    if (!file || !petId) return;
+    try {
+      const updated = await petsApi.uploadPhoto(petId, file);
+      setPets(prev => prev.map(p => p.id === petId ? updated : p));
+    } catch { /* silently fail */ }
+    e.target.value = '';
+    photoTargetRef.current = null;
+  };
+
+  const handleRemovePhoto = async (petId: number) => {
+    setPhotoMenuId(null);
+    try {
+      const updated = await petsApi.deletePhoto(petId);
+      setPets(prev => prev.map(p => p.id === petId ? updated : p));
+    } catch { /* silently fail */ }
   };
 
   if (authLoading || loading) {
@@ -163,7 +200,38 @@ export default function PetsPage() {
                 >
                   {/* Top: Photo + Name */}
                   <div className="flex items-center gap-4 p-5 pb-3">
-                    <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
+                    <div
+                      className="relative shrink-0"
+                      onClick={(e) => { e.stopPropagation(); setPhotoMenuId(photoMenuId === pet.id ? null : pet.id); }}
+                    >
+                      <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
+                      <div className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer">
+                        <Camera className="w-5 h-5 text-white drop-shadow" />
+                      </div>
+                      {photoMenuId === pet.id && (
+                        <div
+                          className="absolute top-full left-0 mt-1.5 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[150px] animate-fadeIn"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => handleUploadPhoto(pet.id)}
+                            className="w-full px-3.5 py-2 text-left text-sm text-txt hover:bg-primary/5 flex items-center gap-2.5 transition-colors"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-primary" />
+                            {t('pets.changePhoto')}
+                          </button>
+                          {pet.photo_url && (
+                            <button
+                              onClick={() => handleRemovePhoto(pet.id)}
+                              className="w-full px-3.5 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              {t('pets.removePhoto')}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-txt truncate">{pet.name}</h3>
                       <p className="text-sm text-txt-secondary capitalize">
@@ -283,6 +351,7 @@ export default function PetsPage() {
           </form>
         </Modal>
       </main>
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
     </>
   );
 }

@@ -49,6 +49,8 @@ export default {
     exotic: 'Exotico',
     dashboard: 'Painel',
     noPets: 'Sem animais. Adicione o primeiro!',
+    changePhoto: 'Alterar Foto',
+    removePhoto: 'Remover Foto',
   },
   feeding: {
     title: 'Alimentacao',
