@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
 import { PawPrint, Mail, Lock, AlertCircle } from 'lucide-react';
+import FarmScene from '@/components/FarmScene';
 
 function GoogleIcon() {
   return (
@@ -61,11 +62,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-white to-accent/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-green-50/50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Hero */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 animate-float">
             <PawPrint className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-primary">PWellTrack</h1>
@@ -74,21 +75,21 @@ export default function LoginPage() {
 
         {/* Offline banner */}
         {!backendReachable && (
-          <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium">
+          <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {t('auth.offlineMsg')}
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="card space-y-4">
+        <form onSubmit={handleSubmit} className="card space-y-4 animate-slideUp">
           <div>
             <h2 className="text-xl font-bold text-txt">{t('auth.welcomeBack')}</h2>
             <p className="text-sm text-txt-muted">{t('auth.signInContinue')}</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium animate-fadeIn">
               {error}
             </div>
           )}
@@ -99,7 +100,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleGoogle}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border-2 border-gray-200 bg-white hover:bg-gray-50 transition-colors font-medium text-txt"
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border-2 border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm transition-all font-medium text-txt"
               >
                 <GoogleIcon />
                 {t('auth.googleSignIn')}
@@ -149,6 +150,9 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+
+      {/* Animated farm scene */}
+      <FarmScene />
     </div>
   );
 }
