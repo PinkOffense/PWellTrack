@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { PawPrint, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 import FarmScene from '@/components/FarmScene';
+import FerretMascot from '@/components/FerretMascot';
 
 function GoogleIcon() {
   return (
@@ -56,10 +57,10 @@ export default function LoginPage() {
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-sm px-4">
-        {/* Logo */}
+        {/* Mascot + Logo */}
         <div className="text-center mb-6">
-          <div className="w-18 h-18 w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-xl shadow-violet-500/20 animate-float">
-            <PawPrint className="w-9 h-9 text-white" />
+          <div className="flex justify-center mb-2">
+            <FerretMascot size={100} animate={true} />
           </div>
           <h1 className="text-3xl font-extrabold bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 bg-clip-text text-transparent">
             PWellTrack
