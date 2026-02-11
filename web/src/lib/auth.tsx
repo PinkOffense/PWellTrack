@@ -2,14 +2,17 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authApi, tokenStorage, checkBackend } from './api';
+import { supabase, isSupabaseConfigured } from './supabase';
 import type { User } from './types';
 
 interface AuthState {
   user: User | null;
   loading: boolean;
   backendReachable: boolean;
+  googleAvailable: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
 }
 
@@ -17,8 +20,10 @@ const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   backendReachable: false,
+  googleAvailable: false,
   login: async () => {},
   register: async () => {},
+  loginWithGoogle: async () => {},
   logout: () => {},
 });
 
@@ -28,6 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [backendReachable, setBackendReachable] = useState(false);
+
+  // Sync Supabase Google user with our backend
+  const handleSupabaseUser = useCallback(async (supabaseToken: string, email: string, name: string) => {
+    const res = await authApi.google({ email, name, supabase_token: supabaseToken });
+    tokenStorage.set(res.access_token);
+    setUser(res.user);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -46,7 +58,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     })();
-  }, []);
+
+    // Listen for Supabase auth callback (Google OAuth redirect)
+    if (!isSupabaseConfigured || !supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const email = session.user.email || '';
+        const name =
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          email.split('@')[0];
+        try {
+          await handleSupabaseUser(session.access_token, email, name);
+        } catch (e) {
+          console.error('Failed to sync Google user with backend:', e);
+        }
+      }
+    });
+
+    return () => { subscription.unsubscribe(); };
+  }, [handleSupabaseUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
@@ -60,13 +91,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Google Sign-In not configured');
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/login',
+      },
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
   const logout = useCallback(() => {
     tokenStorage.clear();
+    supabase?.auth.signOut().catch(() => {});
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, backendReachable, login, register, logout }}>
+    <AuthContext.Provider value={{
+      user, loading, backendReachable,
+      googleAvailable: isSupabaseConfigured && backendReachable,
+      login, register, loginWithGoogle, logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );
