@@ -49,6 +49,8 @@ export default {
     exotic: 'Exotic',
     dashboard: 'Dashboard',
     noPets: 'No pets yet. Add your first pet!',
+    changePhoto: 'Change Photo',
+    removePhoto: 'Remove Photo',
   },
   feeding: {
     title: 'Feeding',

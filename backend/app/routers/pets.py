@@ -113,6 +113,19 @@ async def upload_pet_photo(
     return PetOut.model_validate(pet)
 
 
+@router.delete("/{pet_id}/photo", response_model=PetOut)
+async def delete_pet_photo(
+    pet_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet.photo_url = None
+    await db.commit()
+    await db.refresh(pet)
+    return PetOut.model_validate(pet)
+
+
 @router.get("/{pet_id}/today", response_model=PetDashboard)
 async def pet_today(
     pet_id: int,
