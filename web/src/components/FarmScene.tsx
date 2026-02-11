@@ -29,12 +29,12 @@ interface Particle {
 function createParticles(count: number): Particle[] {
   const particles: Particle[] = [];
   const colors = [
-    'rgba(167,139,250,',  // violet-400
-    'rgba(196,181,253,',  // violet-300
-    'rgba(139,92,246,',   // violet-500
-    'rgba(221,214,254,',  // violet-200
-    'rgba(244,114,182,',  // pink-400
-    'rgba(251,191,36,',   // amber-400
+    'rgba(201,184,232,',  // soft lavender
+    'rgba(213,206,240,',  // lighter lavender
+    'rgba(180,165,214,',  // muted lavender
+    'rgba(224,218,244,',  // very light lavender
+    'rgba(242,200,210,',  // soft blush
+    'rgba(232,212,188,',  // warm cream
   ];
 
   for (let i = 0; i < count; i++) {
@@ -93,10 +93,10 @@ export default function FarmScene() {
 
       // ─── Soft gradient blobs (animated mesh gradient feel) ───
       const blobs = [
-        { x: 30 + Math.sin(t * 0.3) * 15, y: 40 + Math.cos(t * 0.4) * 10, r: 120, color: 'rgba(167,139,250,0.08)' },
-        { x: 70 + Math.cos(t * 0.25) * 12, y: 60 + Math.sin(t * 0.35) * 8, r: 100, color: 'rgba(244,114,182,0.06)' },
-        { x: 50 + Math.sin(t * 0.2) * 20, y: 30 + Math.cos(t * 0.3) * 12, r: 140, color: 'rgba(139,92,246,0.05)' },
-        { x: 15 + Math.cos(t * 0.15) * 10, y: 70 + Math.sin(t * 0.25) * 8, r: 90, color: 'rgba(196,181,253,0.07)' },
+        { x: 30 + Math.sin(t * 0.3) * 15, y: 40 + Math.cos(t * 0.4) * 10, r: 120, color: 'rgba(201,184,232,0.06)' },
+        { x: 70 + Math.cos(t * 0.25) * 12, y: 60 + Math.sin(t * 0.35) * 8, r: 100, color: 'rgba(242,200,210,0.05)' },
+        { x: 50 + Math.sin(t * 0.2) * 20, y: 30 + Math.cos(t * 0.3) * 12, r: 140, color: 'rgba(180,165,214,0.04)' },
+        { x: 15 + Math.cos(t * 0.15) * 10, y: 70 + Math.sin(t * 0.25) * 8, r: 90, color: 'rgba(213,206,240,0.05)' },
       ];
 
       for (const blob of blobs) {
@@ -112,7 +112,7 @@ export default function FarmScene() {
       // ─── Heartbeat pulse line (subtle, health-themed) ───
       ctx.save();
       ctx.globalAlpha = 0.06 + Math.sin(t * 1.5) * 0.02;
-      ctx.strokeStyle = '#a78bfa';
+      ctx.strokeStyle = '#C9B8E8';
       ctx.lineWidth = 1.5;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -210,7 +210,7 @@ export default function FarmScene() {
         }
         ctx.lineTo(w, h);
         ctx.closePath();
-        ctx.fillStyle = `rgba(139,92,246,${waveAlpha})`;
+        ctx.fillStyle = `rgba(180,165,214,${waveAlpha})`;
         ctx.fill();
       }
       ctx.restore();

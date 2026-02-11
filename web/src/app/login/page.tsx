@@ -51,18 +51,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-violet-50 via-white to-purple-50/60 flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#f5f0ff] via-white to-[#f0ecff]/40 flex items-center justify-center overflow-hidden">
       {/* Animated canvas background */}
       <FarmScene />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-sm px-4">
         {/* Mascot + Logo */}
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-2">
-            <FerretMascot size={100} animate={true} />
+        <div className="text-center mb-4">
+          <div className="flex justify-center mb-1">
+            <FerretMascot size={150} animate={true} />
           </div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-violet-600 via-purple-600 to-violet-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent">
             PWellTrack
           </h1>
           <p className="text-sm text-gray-400 mt-1 font-medium tracking-wide">{t('auth.signInContinue')}</p>
@@ -77,7 +77,7 @@ export default function LoginPage() {
         )}
 
         {/* Card */}
-        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl shadow-violet-500/[0.06] border border-white/80 p-6 animate-slideUp">
+        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl shadow-[#B4A5D6]/[0.06] border border-white/80 p-6 animate-slideUp">
           {error && (
             <div className="bg-red-50/90 border border-red-100 text-red-600 px-3 py-2.5 rounded-xl text-sm font-medium mb-4 animate-fadeIn">
               {error}
@@ -87,31 +87,31 @@ export default function LoginPage() {
           {/* Email/Password */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <div className="relative group">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-violet-400 transition-colors" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-[#B4A5D6] transition-colors" />
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder={t('auth.email')}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-50 outline-none transition-all text-sm placeholder:text-gray-300"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff] outline-none transition-all text-sm placeholder:text-gray-300"
                 autoComplete="email"
               />
             </div>
             <div className="relative group">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-violet-400 transition-colors" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-[#B4A5D6] transition-colors" />
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder={t('auth.password')}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-violet-300 focus:bg-white focus:ring-4 focus:ring-violet-50 outline-none transition-all text-sm placeholder:text-gray-300"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff] outline-none transition-all text-sm placeholder:text-gray-300"
                 autoComplete="current-password"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold text-sm hover:from-violet-600 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#B4A5D6] to-[#9B8EC8] text-white font-semibold text-sm hover:from-[#A596C9] hover:to-[#8D80BB] transition-all shadow-lg shadow-[#B4A5D6]/20 hover:shadow-xl hover:shadow-[#B4A5D6]/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {loading ? t('common.loading') : t('auth.login')}
             </button>
@@ -139,7 +139,7 @@ export default function LoginPage() {
 
         <p className="text-center mt-5 text-sm text-gray-400">
           {t('auth.noAccount')}{' '}
-          <Link href="/register" className="text-violet-500 font-semibold hover:text-violet-600 hover:underline transition-colors">
+          <Link href="/register" className="text-[#9B8EC8] font-semibold hover:text-[#8D80BB] hover:underline transition-colors">
             {t('auth.register')}
           </Link>
         </p>
