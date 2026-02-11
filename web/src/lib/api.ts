@@ -1,0 +1,143 @@
+import type {
+  TokenResponse, User, Pet, PetCreate, PetDashboard,
+  FeedingLog, FeedingCreate, WaterLog, WaterCreate,
+  Vaccine, VaccineCreate, Medication, MedicationCreate,
+  PetEvent, EventCreate, Symptom, SymptomCreate,
+} from './types';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// ── Token storage ──
+let _token: string | null = null;
+
+export const tokenStorage = {
+  get(): string | null {
+    if (_token) return _token;
+    if (typeof window !== 'undefined') {
+      _token = localStorage.getItem('pwelltrack_token');
+    }
+    return _token;
+  },
+  set(token: string) {
+    _token = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pwelltrack_token', token);
+    }
+  },
+  clear() {
+    _token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pwelltrack_token');
+    }
+  },
+};
+
+// ── HTTP client ──
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = tokenStorage.get();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
+    throw new Error(err.detail || `Error ${res.status}`);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+// ── Auth API ──
+export const authApi = {
+  register: (data: { name: string; email: string; password: string }) =>
+    request<TokenResponse>('POST', '/auth/register', data),
+  login: (data: { email: string; password: string }) =>
+    request<TokenResponse>('POST', '/auth/login', data),
+  me: () => request<User>('GET', '/auth/me'),
+  refresh: () => request<TokenResponse>('POST', '/auth/refresh'),
+  google: (data: { email: string; name: string; supabase_token: string }) =>
+    request<TokenResponse>('POST', '/auth/google', data),
+};
+
+// ── Pets API ──
+export const petsApi = {
+  list: () => request<Pet[]>('GET', '/pets/'),
+  create: (data: PetCreate) => request<Pet>('POST', '/pets/', data),
+  get: (id: number) => request<Pet>('GET', `/pets/${id}`),
+  update: (id: number, data: Partial<PetCreate>) => request<Pet>('PUT', `/pets/${id}`, data),
+  delete: (id: number) => request<void>('DELETE', `/pets/${id}`),
+  today: (id: number) => request<PetDashboard>('GET', `/pets/${id}/today`),
+  uploadPhoto: async (id: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const token = tokenStorage.get();
+    const res = await fetch(`${API_BASE}/pets/${id}/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json() as Promise<Pet>;
+  },
+};
+
+// ── Feeding API ──
+export const feedingApi = {
+  list: (petId: number) => request<FeedingLog[]>('GET', `/pets/${petId}/feeding`),
+  create: (petId: number, data: FeedingCreate) => request<FeedingLog>('POST', `/pets/${petId}/feeding`, data),
+  delete: (id: number) => request<void>('DELETE', `/feeding/${id}`),
+};
+
+// ── Water API ──
+export const waterApi = {
+  list: (petId: number) => request<WaterLog[]>('GET', `/pets/${petId}/water`),
+  create: (petId: number, data: WaterCreate) => request<WaterLog>('POST', `/pets/${petId}/water`, data),
+  delete: (id: number) => request<void>('DELETE', `/water/${id}`),
+};
+
+// ── Vaccines API ──
+export const vaccinesApi = {
+  list: (petId: number) => request<Vaccine[]>('GET', `/pets/${petId}/vaccines`),
+  create: (petId: number, data: VaccineCreate) => request<Vaccine>('POST', `/pets/${petId}/vaccines`, data),
+  delete: (id: number) => request<void>('DELETE', `/vaccines/${id}`),
+};
+
+// ── Medications API ──
+export const medicationsApi = {
+  list: (petId: number) => request<Medication[]>('GET', `/pets/${petId}/medications`),
+  create: (petId: number, data: MedicationCreate) => request<Medication>('POST', `/pets/${petId}/medications`, data),
+  delete: (id: number) => request<void>('DELETE', `/medications/${id}`),
+};
+
+// ── Events API ──
+export const eventsApi = {
+  list: (petId: number) => request<PetEvent[]>('GET', `/pets/${petId}/events`),
+  create: (petId: number, data: EventCreate) => request<PetEvent>('POST', `/pets/${petId}/events`, data),
+  delete: (id: number) => request<void>('DELETE', `/events/${id}`),
+};
+
+// ── Symptoms API ──
+export const symptomsApi = {
+  list: (petId: number) => request<Symptom[]>('GET', `/pets/${petId}/symptoms`),
+  create: (petId: number, data: SymptomCreate) => request<Symptom>('POST', `/pets/${petId}/symptoms`, data),
+  delete: (id: number) => request<void>('DELETE', `/symptoms/${id}`),
+};
+
+// ── Health check ──
+export async function checkBackend(): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return true;
+  } catch {
+    return false;
+  }
+}
