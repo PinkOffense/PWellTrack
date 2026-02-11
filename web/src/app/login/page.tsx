@@ -51,23 +51,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#f5f0ff] via-white to-[#f0ecff]/40 flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#f5f0ff] via-white to-[#f0ecff]/40 flex flex-col items-center overflow-hidden">
       {/* Animated canvas background */}
       <FarmScene />
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-sm px-4">
-        {/* Mascot + Logo */}
-        <div className="text-center mb-4">
-          <div className="flex justify-center mb-1">
-            <FerretMascot size={150} animate={true} />
-          </div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent">
-            PWellTrack
-          </h1>
-          <p className="text-sm text-gray-400 mt-1 font-medium tracking-wide">{t('auth.signInContinue')}</p>
-        </div>
+      {/* Hero header — large ferret animation */}
+      <div className="relative z-10 w-full flex flex-col items-center pt-8 pb-2">
+        <FerretMascot size={280} animate={true} />
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent mt-1">
+          PWellTrack
+        </h1>
+        <p className="text-sm text-gray-400 mt-1 font-medium tracking-wide">{t('auth.signInContinue')}</p>
+      </div>
 
+      {/* Login form */}
+      <div className="relative z-10 w-full max-w-sm px-4 mt-4 pb-8">
         {/* Offline banner */}
         {!backendReachable && (
           <div className="flex items-center gap-2 bg-amber-50/90 backdrop-blur-sm border border-amber-200 text-amber-700 px-3 py-2.5 rounded-xl mb-3 text-sm font-medium animate-fadeIn">
