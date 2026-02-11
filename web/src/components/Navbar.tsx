@@ -5,12 +5,15 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { PawPrint, Settings, LogOut } from 'lucide-react';
+import { useNotifications } from '@/lib/useNotifications';
+import { NotificationToast } from '@/components/NotificationToast';
+import { PawPrint, Settings, Bell, LogOut } from 'lucide-react';
 
 export function Navbar() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const { notifications, dismiss } = useNotifications(!!user);
 
   if (!user) return null;
 
@@ -51,14 +54,26 @@ export function Navbar() {
             );
           })}
           <button
+            className="relative p-2 rounded-xl text-txt-muted hover:bg-primary/5 hover:text-primary transition-all duration-300"
+            title={t('notifications.feedingReminder')}
+          >
+            <Bell className="w-4 h-4" />
+            {notifications.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-fadeIn">
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={logout}
-            className="ml-2 p-2 rounded-xl text-txt-muted hover:bg-red-50 hover:text-red-500 transition-all duration-300"
+            className="ml-1 p-2 rounded-xl text-txt-muted hover:bg-red-50 hover:text-red-500 transition-all duration-300"
             title={t('settings.logout')}
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
+      <NotificationToast notifications={notifications} onDismiss={dismiss} />
     </nav>
   );
 }

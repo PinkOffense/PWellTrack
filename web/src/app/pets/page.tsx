@@ -9,31 +9,38 @@ import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
-import { PawPrint, Plus, Utensils, Syringe } from 'lucide-react';
+import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight } from 'lucide-react';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
-function getFeedingBadge(d: PetDashboard | null, t: any) {
+function getFeedingStatus(d: PetDashboard | null) {
   if (!d) return null;
   const { total_actual_grams: actual, total_planned_grams: planned, entries_count } = d.feeding;
-  if (entries_count === 0) return { label: t('dashboard.notFed'), cls: 'badge-red' };
-  if (planned > 0 && actual < planned * 0.7) return { label: t('dashboard.underfed'), cls: 'badge-amber' };
-  if (planned > 0 && actual > planned * 1.3) return { label: t('dashboard.overfed'), cls: 'badge-amber' };
-  return { label: t('dashboard.wellFed'), cls: 'badge-green' };
+  if (entries_count === 0) return { key: 'notFed' as const, color: 'text-red-500', bg: 'bg-red-50' };
+  if (planned > 0 && actual < planned * 0.7) return { key: 'underfed' as const, color: 'text-amber-500', bg: 'bg-amber-50' };
+  if (planned > 0 && actual > planned * 1.3) return { key: 'overfed' as const, color: 'text-amber-500', bg: 'bg-amber-50' };
+  return { key: 'wellFed' as const, color: 'text-emerald-500', bg: 'bg-emerald-50' };
 }
 
-function getVaccineBadge(vaccines: Vaccine[], t: any) {
-  if (vaccines.length === 0) return { label: t('common.noData'), cls: 'badge-gray' };
+function getVaccineStatus(vaccines: Vaccine[]) {
+  if (vaccines.length === 0) return { key: 'noData' as const, color: 'text-gray-400', bg: 'bg-gray-50' };
   const now = new Date();
-  const overdue = vaccines.some(v => v.next_due_date && new Date(v.next_due_date) < now);
-  if (overdue) return { label: t('vaccines.overdue'), cls: 'badge-red' };
-  const soon = vaccines.some(v => {
-    if (!v.next_due_date) return false;
-    const d = new Date(v.next_due_date);
-    return d >= now && d <= new Date(now.getTime() + 30 * 86400000);
-  });
-  if (soon) return { label: t('vaccines.dueSoon'), cls: 'badge-amber' };
-  return { label: t('vaccines.upToDate'), cls: 'badge-green' };
+  if (vaccines.some(v => v.next_due_date && new Date(v.next_due_date) < now))
+    return { key: 'overdue' as const, color: 'text-red-500', bg: 'bg-red-50' };
+  if (vaccines.some(v => v.next_due_date && new Date(v.next_due_date) >= now && new Date(v.next_due_date) <= new Date(now.getTime() + 30 * 86400000)))
+    return { key: 'dueSoon' as const, color: 'text-amber-500', bg: 'bg-amber-50' };
+  return { key: 'upToDate' as const, color: 'text-emerald-500', bg: 'bg-emerald-50' };
 }
+
+const statusLabels: Record<string, string> = {
+  notFed: 'dashboard.notFed',
+  underfed: 'dashboard.underfed',
+  overfed: 'dashboard.overfed',
+  wellFed: 'dashboard.wellFed',
+  noData: 'common.noData',
+  overdue: 'vaccines.overdue',
+  dueSoon: 'vaccines.dueSoon',
+  upToDate: 'vaccines.upToDate',
+};
 
 export default function PetsPage() {
   const { t } = useTranslation();
@@ -116,10 +123,11 @@ export default function PetsPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-txt">{t('pets.myPets')}</h1>
-          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
+      <main className="max-w-lg mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#9B8EC8] to-[#B4A5D6] bg-clip-text text-transparent">{t('pets.myPets')}</h1>
+          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2 !py-2.5 !px-4 text-sm">
             <Plus className="w-4 h-4" />
             {t('pets.addPet')}
           </button>
@@ -136,37 +144,94 @@ export default function PetsPage() {
             }
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {pets.map(pet => {
-              const fb = getFeedingBadge(dashboards[pet.id] ?? null, t);
-              const vb = getVaccineBadge(vaccineData[pet.id] ?? [], t);
+          <div className="flex flex-col gap-4">
+            {pets.map((pet, i) => {
+              const dash = dashboards[pet.id] ?? null;
+              const vaccines = vaccineData[pet.id] ?? [];
+              const feedStatus = getFeedingStatus(dash);
+              const vaxStatus = getVaccineStatus(vaccines);
+              const activeMeds = dash?.active_medications ?? [];
+              const waterTotal = dash?.water.total_ml ?? 0;
+              const waterGoal = dash?.water.daily_goal_ml ?? 0;
+
               return (
                 <button
                   key={pet.id}
                   onClick={() => router.push(`/pets/${pet.id}`)}
-                  className="card flex items-center gap-4 text-left hover:shadow-md transition-shadow"
+                  className="card p-0 overflow-hidden text-left group transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_16px_56px_-16px_rgba(155,142,200,0.2)]"
+                  style={{ animationDelay: `${i * 80}ms` }}
                 >
-                  <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-lg text-txt truncate">{pet.name}</h3>
-                    <p className="text-sm text-txt-secondary capitalize">
-                      {t(`pets.${pet.species}` as any)}
-                      {pet.breed && ` · ${pet.breed}`}
-                      {pet.weight_kg && ` · ${pet.weight_kg} kg`}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {fb && (
-                        <span className={fb.cls}>
-                          <Utensils className="w-3 h-3 inline mr-1" />
-                          {fb.label}
-                        </span>
-                      )}
-                      {vb && (
-                        <span className={vb.cls}>
-                          <Syringe className="w-3 h-3 inline mr-1" />
-                          {vb.label}
-                        </span>
-                      )}
+                  {/* Top: Photo + Name */}
+                  <div className="flex items-center gap-4 p-5 pb-3">
+                    <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-txt truncate">{pet.name}</h3>
+                      <p className="text-sm text-txt-secondary capitalize">
+                        {t(`pets.${pet.species}` as any)}
+                        {pet.breed && ` · ${pet.breed}`}
+                        {pet.weight_kg && ` · ${pet.weight_kg}kg`}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300" />
+                  </div>
+
+                  {/* Status row: Feeding, Water, Meds, Vaccines */}
+                  <div className="grid grid-cols-2 gap-px bg-gray-100/50 border-t border-gray-100/60">
+                    {/* Feeding */}
+                    <div className="bg-white/80 px-4 py-3 flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${feedStatus?.bg ?? 'bg-gray-50'}`}>
+                        <Utensils className={`w-4 h-4 ${feedStatus?.color ?? 'text-gray-400'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-txt-muted font-medium uppercase tracking-wider">{t('dashboard.feedingStatus')}</p>
+                        <p className={`text-xs font-semibold ${feedStatus?.color ?? 'text-gray-400'}`}>
+                          {feedStatus ? t(statusLabels[feedStatus.key]) : '—'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Water */}
+                    <div className="bg-white/80 px-4 py-3 flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${waterTotal > 0 ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                        <Droplets className={`w-4 h-4 ${waterTotal > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-txt-muted font-medium uppercase tracking-wider">{t('dashboard.waterStatus')}</p>
+                        <p className={`text-xs font-semibold ${waterTotal > 0 ? 'text-blue-500' : 'text-gray-400'}`}>
+                          {waterTotal > 0 ? `${waterTotal}ml` : '—'}
+                          {waterGoal > 0 && <span className="text-txt-muted font-normal"> / {waterGoal}ml</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Medications */}
+                    <div className="bg-white/80 px-4 py-3 flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${activeMeds.length > 0 ? 'bg-purple-50' : 'bg-gray-50'}`}>
+                        <Pill className={`w-4 h-4 ${activeMeds.length > 0 ? 'text-purple-500' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-txt-muted font-medium uppercase tracking-wider">{t('dashboard.medsStatus')}</p>
+                        {activeMeds.length > 0 ? (
+                          <p className="text-xs font-semibold text-purple-500 truncate">
+                            {activeMeds.map(m => m.name).join(', ')}
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-gray-400">—</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Vaccines */}
+                    <div className="bg-white/80 px-4 py-3 flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${vaxStatus.bg}`}>
+                        <Syringe className={`w-4 h-4 ${vaxStatus.color}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-txt-muted font-medium uppercase tracking-wider">{t('dashboard.vaccineStatus')}</p>
+                        <p className={`text-xs font-semibold ${vaxStatus.color}`}>
+                          {t(statusLabels[vaxStatus.key])}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -178,23 +243,23 @@ export default function PetsPage() {
         {/* Add pet modal */}
         <Modal open={showForm} onClose={() => setShowForm(false)} title={t('pets.addPet')}>
           <form onSubmit={handleCreate} className="space-y-4">
-            {formError && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{formError}</div>}
+            {formError && <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">{formError}</div>}
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('pets.name')} *</label>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.name')} *</label>
               <input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} className="input" />
             </div>
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('pets.species')} *</label>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.species')} *</label>
               <div className="flex gap-2">
                 {['dog', 'cat', 'exotic'].map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, species: s }))}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all border-2
+                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
                       ${formData.species === s
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-gray-200 text-txt-secondary hover:border-primary/30'}`}
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
                   >
                     {t(`pets.${s}` as any)}
                   </button>
@@ -202,11 +267,11 @@ export default function PetsPage() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('pets.breed')}</label>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>
               <input value={formData.breed} onChange={e => setFormData(f => ({ ...f, breed: e.target.value }))} className="input" placeholder="Golden Retriever..." />
             </div>
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('pets.weight')}</label>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
               <input type="number" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
             </div>
             <div className="flex gap-3 pt-2">
