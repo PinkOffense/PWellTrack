@@ -2,6 +2,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  photo_url?: string;
   timezone: string;
   created_at: string;
 }

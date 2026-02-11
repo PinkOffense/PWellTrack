@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime
+from typing import Optional
+from sqlalchemy import String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,6 +13,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    photo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     timezone: Mapped[str] = mapped_column(String(60), default="UTC")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

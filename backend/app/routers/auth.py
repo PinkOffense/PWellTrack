@@ -1,5 +1,6 @@
+import base64
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, get_current_user
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest
+from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest, PasswordChange
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -117,3 +118,71 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
     """Issue a fresh token for an authenticated user."""
     token = create_access_token(current_user.id)
     return TokenResponse(access_token=token, user=UserOut.model_validate(current_user))
+
+
+# ── Profile photo ────────────────────────────────────────────────────────
+
+@router.post("/photo", response_model=UserOut)
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.content_type and file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="File must be an image (JPEG, PNG, GIF, or WebP)")
+
+    max_size = 5 * 1024 * 1024
+    contents = await file.read()
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
+
+    b64 = base64.b64encode(contents).decode()
+    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    current_user.photo_url = f"data:image/{ext};base64,{b64}"
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+@router.delete("/photo", response_model=UserOut)
+async def delete_profile_photo(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.photo_url = None
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+# ── Change password ──────────────────────────────────────────────────────
+
+@router.put("/password", response_model=UserOut)
+async def change_password(
+    data: PasswordChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.password_hash == "!google-oauth":
+        raise HTTPException(status_code=400, detail="Google accounts cannot change password")
+
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.password_hash = hash_password(data.new_password)
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+# ── Delete account ───────────────────────────────────────────────────────
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete the user account and all associated data (pets, logs, etc.)."""
+    await db.delete(current_user)
+    await db.commit()
