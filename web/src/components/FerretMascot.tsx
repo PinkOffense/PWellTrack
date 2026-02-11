@@ -36,6 +36,15 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
       className="relative inline-flex items-center justify-center"
       style={{ width: size, height: size, perspective: '600px' }}
     >
+      {/* Soft radial glow behind the ferret */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(201,184,232,0.25) 0%, rgba(213,206,240,0.12) 50%, transparent 75%)',
+          transform: 'scale(1.1)',
+        }}
+      />
+
       {/* Standing ferret (spins, then fades out) */}
       <div className={`ferret-standing absolute inset-0 ${phase}`}>
         <Image
@@ -43,8 +52,8 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
           alt="PWellTrack ferret mascot standing"
           width={size}
           height={size}
-          className="w-full h-full object-contain drop-shadow-md"
-          style={{ mixBlendMode: 'multiply' }}
+          className="w-full h-full object-contain"
+          style={{ filter: 'drop-shadow(0 4px 12px rgba(155,142,200,0.25))' }}
           priority
         />
       </div>
@@ -56,8 +65,8 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
           alt="PWellTrack ferret mascot sleeping"
           width={size}
           height={size}
-          className="w-full h-full object-contain drop-shadow-md"
-          style={{ mixBlendMode: 'multiply' }}
+          className="w-full h-full object-contain"
+          style={{ filter: 'drop-shadow(0 4px 12px rgba(155,142,200,0.25))' }}
           priority
         />
       </div>
