@@ -51,67 +51,71 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#f5f0ff] via-white to-[#f0ecff]/40 flex flex-col items-center overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-[#f8f4ff] via-[#faf8ff] to-white flex flex-col items-center overflow-hidden">
       {/* Animated canvas background */}
       <FarmScene />
 
-      {/* Banner header — LinkedIn-style wide ferret animation */}
-      <div className="relative z-10 w-full max-w-lg">
-        <FerretMascot banner animate={true} height={220} />
+      {/* Banner header — full-width responsive video with soft vignette */}
+      <div className="relative z-10 w-full">
+        <FerretMascot animate={true} />
+        {/* Soft fade at the bottom of the banner */}
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#f8f4ff] to-transparent pointer-events-none" />
       </div>
-      <div className="relative z-10 text-center mt-3">
-        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent">
+
+      {/* Title area — overlaps slightly with banner fade */}
+      <div className="relative z-10 text-center -mt-2">
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent drop-shadow-sm">
           PWellTrack
         </h1>
-        <p className="text-sm text-gray-400 mt-1 font-medium tracking-wide">{t('auth.signInContinue')}</p>
+        <p className="text-[13px] text-gray-400/80 mt-1.5 font-medium tracking-widest uppercase">{t('auth.signInContinue')}</p>
       </div>
 
       {/* Login form */}
-      <div className="relative z-10 w-full max-w-sm px-4 mt-4 pb-8">
+      <div className="relative z-10 w-full max-w-[380px] px-5 mt-5 pb-10">
         {/* Offline banner */}
         {!backendReachable && (
-          <div className="flex items-center gap-2 bg-amber-50/90 backdrop-blur-sm border border-amber-200 text-amber-700 px-3 py-2.5 rounded-xl mb-3 text-sm font-medium animate-fadeIn">
+          <div className="flex items-center gap-2 bg-amber-50/80 backdrop-blur-sm border border-amber-100 text-amber-600 px-3.5 py-2.5 rounded-2xl mb-4 text-sm font-medium animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0" />
             {t('auth.offlineMsg')}
           </div>
         )}
 
         {/* Card */}
-        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-xl shadow-[#B4A5D6]/[0.06] border border-white/80 p-6 animate-slideUp">
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[28px] shadow-[0_8px_40px_-12px_rgba(155,142,200,0.12)] border border-white/90 p-7 animate-slideUp">
           {error && (
-            <div className="bg-red-50/90 border border-red-100 text-red-600 px-3 py-2.5 rounded-xl text-sm font-medium mb-4 animate-fadeIn">
+            <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium mb-5 animate-fadeIn">
               {error}
             </div>
           )}
 
           {/* Email/Password */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative group">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-[#B4A5D6] transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder={t('auth.email')}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff] outline-none transition-all text-sm placeholder:text-gray-300"
+                className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70"
                 autoComplete="email"
               />
             </div>
             <div className="relative group">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-[#B4A5D6] transition-colors" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder={t('auth.password')}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 bg-gray-50/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff] outline-none transition-all text-sm placeholder:text-gray-300"
+                className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70"
                 autoComplete="current-password"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#B4A5D6] to-[#9B8EC8] text-white font-semibold text-sm hover:from-[#A596C9] hover:to-[#8D80BB] transition-all shadow-lg shadow-[#B4A5D6]/20 hover:shadow-xl hover:shadow-[#B4A5D6]/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#B4A5D6] via-[#A99ACD] to-[#9B8EC8] text-white font-semibold text-sm tracking-wide hover:shadow-[0_6px_24px_-4px_rgba(155,142,200,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {loading ? t('common.loading') : t('auth.login')}
             </button>
@@ -120,15 +124,15 @@ export default function LoginPage() {
           {/* Divider + Google */}
           {googleAvailable && (
             <>
-              <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-                <span className="text-xs text-gray-300 uppercase tracking-widest font-medium">{t('common.or')}</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
+                <span className="text-[11px] text-gray-300/80 uppercase tracking-[0.2em] font-medium">{t('common.or')}</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
               </div>
               <button
                 type="button"
                 onClick={handleGoogle}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border border-gray-100 bg-white/80 hover:bg-white hover:border-gray-200 hover:shadow-md transition-all font-medium text-sm text-gray-600 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl border border-gray-100/80 bg-white/60 hover:bg-white hover:border-gray-200/80 hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.06)] transition-all duration-300 font-medium text-sm text-gray-500 active:scale-[0.98]"
               >
                 <GoogleIcon />
                 {t('auth.googleSignIn')}
@@ -137,9 +141,9 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center mt-5 text-sm text-gray-400">
+        <p className="text-center mt-6 text-sm text-gray-400/70">
           {t('auth.noAccount')}{' '}
-          <Link href="/register" className="text-[#9B8EC8] font-semibold hover:text-[#8D80BB] hover:underline transition-colors">
+          <Link href="/register" className="text-[#9B8EC8] font-semibold hover:text-[#8D80BB] hover:underline transition-colors duration-300">
             {t('auth.register')}
           </Link>
         </p>
