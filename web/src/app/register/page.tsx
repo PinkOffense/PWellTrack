@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
 import { User, Mail, Lock, AlertCircle } from 'lucide-react';
+import FarmScene from '@/components/FarmScene';
+import FerretMascot from '@/components/FerretMascot';
 
 function GoogleIcon() {
   return (
@@ -52,19 +53,26 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-[380px]">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#f5f0ff] to-[#ece5ff] flex items-center justify-center mx-auto mb-3 shadow-[0_8px_32px_-8px_rgba(155,142,200,0.2)]">
-            <Image src="/ferret-sleeping.png" alt="PWellTrack" width={64} height={64} className="w-16 h-16 object-contain" />
-          </div>
-          <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent">
-            {t('auth.register')}
-          </h1>
-          <p className="text-[13px] text-gray-400/80 mt-1.5 font-medium tracking-widest uppercase">{t('auth.createAccount')}</p>
-        </div>
+    <div className="relative min-h-screen bg-gradient-to-b from-[#f8f4ff] via-[#faf8ff] to-white flex flex-col items-center overflow-hidden">
+      {/* Animated canvas background */}
+      <FarmScene />
 
+      {/* Banner header — same video as login */}
+      <div className="relative z-10 w-full">
+        <FerretMascot animate={true} />
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#f8f4ff] to-transparent pointer-events-none" />
+      </div>
+
+      {/* Title */}
+      <div className="relative z-10 text-center -mt-2">
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent drop-shadow-sm">
+          PWellTrack
+        </h1>
+        <p className="text-[13px] text-gray-400/80 mt-1.5 font-medium tracking-widest uppercase">{t('auth.createAccount')}</p>
+      </div>
+
+      {/* Register form */}
+      <div className="relative z-10 w-full max-w-[380px] px-5 mt-5 pb-10">
         {/* Offline banner */}
         {!backendReachable && (
           <div className="flex items-center gap-2 bg-amber-50/80 backdrop-blur-sm border border-amber-100 text-amber-600 px-3.5 py-2.5 rounded-2xl mb-4 text-sm font-medium animate-fadeIn">
@@ -73,16 +81,47 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div className="card p-7 animate-slideUp">
+        {/* Card */}
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[28px] shadow-[0_8px_40px_-12px_rgba(155,142,200,0.12)] border border-white/90 p-7 animate-slideUp">
           {error && (
             <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium mb-5 animate-fadeIn">
               {error}
             </div>
           )}
 
-          {/* Google Sign-In */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('auth.name')} className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70" autoComplete="name" />
+            </div>
+
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth.email')} className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70" autoComplete="email" />
+            </div>
+
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth.password')} className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70" autoComplete="new-password" />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#B4A5D6] via-[#A99ACD] to-[#9B8EC8] text-white font-semibold text-sm tracking-wide hover:shadow-[0_6px_24px_-4px_rgba(155,142,200,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            >
+              {loading ? t('common.loading') : t('auth.register')}
+            </button>
+          </form>
+
+          {/* Divider + Google */}
           {googleAvailable && (
             <>
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
+                <span className="text-[11px] text-gray-300/80 uppercase tracking-[0.2em] font-medium">{t('common.or')}</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
+              </div>
               <button
                 type="button"
                 onClick={async () => {
@@ -93,35 +132,8 @@ export default function RegisterPage() {
                 <GoogleIcon />
                 {t('auth.googleSignIn')}
               </button>
-
-              <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
-                <span className="text-[11px] text-gray-300/80 uppercase tracking-[0.2em] font-medium">{t('common.or')}</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200/60 to-transparent" />
-              </div>
             </>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('auth.name')} className="input pl-12" autoComplete="name" />
-            </div>
-
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('auth.email')} className="input pl-12" autoComplete="email" />
-            </div>
-
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth.password')} className="input pl-12" autoComplete="new-password" />
-            </div>
-
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? t('common.loading') : t('auth.register')}
-            </button>
-          </form>
         </div>
 
         <p className="text-center mt-6 text-sm text-gray-400/70">
