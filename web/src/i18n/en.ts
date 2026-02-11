@@ -30,6 +30,7 @@ export default {
     hasAccount: 'Already have an account?',
     offlineMsg: 'Backend offline - check your connection',
     forgotPassword: 'Forgot password?',
+    googleSignIn: 'Continue with Google',
   },
   pets: {
     myPets: 'My Pets',
