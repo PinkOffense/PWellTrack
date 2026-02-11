@@ -4,37 +4,33 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 /**
- * PWellTrack Ferret Mascot — PNG-based with CSS 3D animation
+ * PWellTrack Ferret Mascot — PNG-based with circular walk animation
  *
- * Uses AI-generated 3D clay ferret images with CSS perspective transforms
- * Animation sequence (~3.5s total):
- *   0.0s: Ferret standing, looking at viewer
- *   0.3s-1.8s: Spins 2 full rotations (like a dog before lying down)
- *   1.8s-2.5s: Shrinks + tilts as it "lies down"
- *   2.5s-3.0s: Cross-fade to curled sleeping pose
- *   3.0s+: Gentle breathing loop + zzz
+ * Animation sequence (~6s total):
+ *   0.0s-0.5s: Ferret appears standing, small bounce entrance
+ *   0.5s-4.8s: Walks in 2 circular laps (like a dog before lying down)
+ *              — circular path + walking bobbing + body lean
+ *   4.8s-5.8s: Slows down, shrinks, cross-fades to sleeping pose
+ *   5.8s+:     Gentle breathing loop + zzz
  */
 
 export default function FerretMascot({ size = 160, animate = true }: { size?: number; animate?: boolean }) {
-  const [phase, setPhase] = useState<'standing' | 'spinning' | 'lying' | 'sleeping'>(
+  const [phase, setPhase] = useState<'standing' | 'walking' | 'lying' | 'sleeping'>(
     animate ? 'standing' : 'sleeping'
   );
 
   useEffect(() => {
     if (!animate) return;
-    // standing → spinning at 0.4s
-    const t1 = setTimeout(() => setPhase('spinning'), 400);
-    // spinning → lying at 2.2s (after 2 full rotations)
-    const t2 = setTimeout(() => setPhase('lying'), 2200);
-    // lying → sleeping at 3.0s (cross-fade to curled pose)
-    const t3 = setTimeout(() => setPhase('sleeping'), 3000);
+    const t1 = setTimeout(() => setPhase('walking'), 500);
+    const t2 = setTimeout(() => setPhase('lying'), 4800);
+    const t3 = setTimeout(() => setPhase('sleeping'), 5800);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [animate]);
 
   return (
     <div
       className="relative inline-flex items-center justify-center"
-      style={{ width: size, height: size, perspective: '600px' }}
+      style={{ width: size, height: size }}
     >
       {/* Soft radial glow behind the ferret */}
       <div
@@ -45,20 +41,34 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
         }}
       />
 
-      {/* Standing ferret (spins, then fades out) */}
-      <div className={`ferret-standing absolute inset-0 ${phase}`}>
-        <Image
-          src="/ferret-sitting.png"
-          alt="PWellTrack ferret mascot standing"
-          width={size}
-          height={size}
-          className="w-full h-full object-contain"
-          style={{ filter: 'drop-shadow(0 4px 12px rgba(155,142,200,0.25))' }}
-          priority
-        />
+      {/* Ground shadow that moves with the ferret */}
+      <div className={`ferret-shadow absolute ${phase}`}
+        style={{
+          width: '60%',
+          height: '12%',
+          bottom: '8%',
+          left: '20%',
+          borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(155,142,200,0.15) 0%, transparent 70%)',
+        }}
+      />
+
+      {/* Standing/walking ferret — outer div for circular path, inner for bobbing */}
+      <div className={`ferret-path absolute inset-0 ${phase}`}>
+        <div className={`ferret-bob ${phase}`} style={{ width: '100%', height: '100%' }}>
+          <Image
+            src="/ferret-sitting.png"
+            alt="PWellTrack ferret mascot"
+            width={size}
+            height={size}
+            className="w-full h-full object-contain"
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(155,142,200,0.25))' }}
+            priority
+          />
+        </div>
       </div>
 
-      {/* Sleeping ferret (fades in after spin) */}
+      {/* Sleeping ferret (fades in when lying down) */}
       <div className={`ferret-sleeping absolute inset-0 ${phase}`}>
         <Image
           src="/ferret-sleeping.png"
@@ -80,62 +90,92 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
 
       <style jsx>{`
         /* ═══════════════════════════════════════
-           STANDING IMAGE — spins then hides
+           STANDING FERRET — circular path layer
            ═══════════════════════════════════════ */
 
-        .ferret-standing {
-          transform-style: preserve-3d;
-          transition: opacity 0.6s ease-in-out;
+        .ferret-path {
+          transition: opacity 0.8s ease-in-out;
         }
 
-        /* Initial: visible, no rotation */
-        .ferret-standing.standing {
+        /* Entrance: small bounce in */
+        .ferret-path.standing {
           opacity: 1;
-          animation: none;
+          animation: entrance 0.5s ease-out forwards;
         }
 
-        /* Spinning: 2 full 360° rotations on Y axis */
-        .ferret-standing.spinning {
+        /* Walking: circular path — 2 full laps */
+        .ferret-path.walking {
           opacity: 1;
-          animation: spinTwice 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          animation: circleWalk 4s ease-in-out forwards;
         }
 
-        /* Lying down: scale down, tilt, fade */
-        .ferret-standing.lying {
+        /* Lying: shrink, tilt, fade out */
+        .ferret-path.lying {
           opacity: 0;
-          transform: scale(0.6) rotate(15deg) translateY(10%);
-          transition: all 0.7s ease-in;
+          transform: scale(0.5) rotate(20deg) translateY(15%);
+          transition: all 0.8s ease-in;
         }
 
         /* Hidden when sleeping */
-        .ferret-standing.sleeping {
+        .ferret-path.sleeping {
           opacity: 0;
           pointer-events: none;
         }
 
         /* ═══════════════════════════════════════
-           SLEEPING IMAGE — fades in after spin
+           BOBBING — walking step bounce
+           ═══════════════════════════════════════ */
+
+        .ferret-bob {
+          position: relative;
+        }
+
+        .ferret-bob.walking {
+          animation: walkBob 0.35s ease-in-out infinite;
+        }
+
+        .ferret-bob.lying,
+        .ferret-bob.sleeping {
+          animation: none;
+        }
+
+        /* ═══════════════════════════════════════
+           GROUND SHADOW — follows the ferret
+           ═══════════════════════════════════════ */
+
+        .ferret-shadow.walking {
+          animation: shadowFollow 4s ease-in-out forwards;
+        }
+
+        .ferret-shadow.lying {
+          opacity: 0;
+          transition: opacity 0.5s ease;
+        }
+
+        .ferret-shadow.sleeping {
+          animation: shadowBreathe 3.5s ease-in-out infinite;
+        }
+
+        /* ═══════════════════════════════════════
+           SLEEPING IMAGE — fades in after walk
            ═══════════════════════════════════════ */
 
         .ferret-sleeping {
           transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
         }
 
-        /* Hidden during standing and spinning */
         .ferret-sleeping.standing,
-        .ferret-sleeping.spinning {
+        .ferret-sleeping.walking {
           opacity: 0;
-          transform: scale(0.85) rotate(5deg);
+          transform: scale(0.8) rotate(10deg);
         }
 
-        /* Fading in as ferret lies down */
         .ferret-sleeping.lying {
           opacity: 1;
           transform: scale(1);
-          transition: opacity 0.8s 0.1s ease-out, transform 0.8s 0.1s ease-out;
+          transition: opacity 1s 0.2s ease-out, transform 1s 0.2s ease-out;
         }
 
-        /* Final: visible with breathing */
         .ferret-sleeping.sleeping {
           opacity: 1;
           transform: scale(1);
@@ -166,35 +206,88 @@ export default function FerretMascot({ size = 160, animate = true }: { size?: nu
            KEYFRAMES
            ═══════════════════════════════════════ */
 
-        /* 2 full spins with perspective (gives 3D feel) */
-        @keyframes spinTwice {
-          0% {
-            transform: rotateY(0deg) scale(1);
-          }
-          25% {
-            transform: rotateY(180deg) scale(0.92);
-          }
-          50% {
-            transform: rotateY(360deg) scale(1);
-          }
-          75% {
-            transform: rotateY(540deg) scale(0.92);
-          }
-          100% {
-            transform: rotateY(720deg) scale(0.95);
-          }
+        /* Entrance bounce */
+        @keyframes entrance {
+          0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+          60% { transform: scale(1.05) translateY(-3px); opacity: 1; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
         }
 
+        /* Circular walk path — 2 full clockwise laps
+           Radius ~18px, with body lean and slight scale for depth.
+           Ferret leans into turns and appears slightly bigger
+           when "closer" (bottom of circle) */
+        @keyframes circleWalk {
+          /* ── Lap 1 ── */
+          0%      { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+          6.25%   { transform: translate(13px, -13px) rotate(-7deg) scale(0.97); }
+          12.5%   { transform: translate(18px, 0px) rotate(-4deg) scale(1); }
+          18.75%  { transform: translate(13px, 13px) rotate(4deg) scale(1.03); }
+          25%     { transform: translate(0px, 18px) rotate(7deg) scale(1.04); }
+          31.25%  { transform: translate(-13px, 13px) rotate(4deg) scale(1.03); }
+          37.5%   { transform: translate(-18px, 0px) rotate(-4deg) scale(1); }
+          43.75%  { transform: translate(-13px, -13px) rotate(-7deg) scale(0.97); }
+          /* ── Lap 2 ── */
+          50%     { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+          56.25%  { transform: translate(13px, -13px) rotate(-7deg) scale(0.97); }
+          62.5%   { transform: translate(18px, 0px) rotate(-4deg) scale(1); }
+          68.75%  { transform: translate(13px, 13px) rotate(4deg) scale(1.03); }
+          75%     { transform: translate(0px, 18px) rotate(7deg) scale(1.04); }
+          81.25%  { transform: translate(-13px, 13px) rotate(4deg) scale(1.03); }
+          87.5%   { transform: translate(-18px, 0px) rotate(-4deg) scale(1); }
+          93.75%  { transform: translate(-13px, -13px) rotate(-7deg) scale(0.97); }
+          /* ── Back to center ── */
+          100%    { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+        }
+
+        /* Walking step bounce — quick little ferret steps */
+        @keyframes walkBob {
+          0%, 100% { transform: translateY(0px) scaleY(1); }
+          25% { transform: translateY(-4px) scaleY(1.02); }
+          50% { transform: translateY(0px) scaleY(0.98); }
+          75% { transform: translateY(-3px) scaleY(1.01); }
+        }
+
+        /* Shadow follows the circular path */
+        @keyframes shadowFollow {
+          0%      { transform: translate(0px, 0px); opacity: 0.8; }
+          6.25%   { transform: translate(13px, 0px); opacity: 0.7; }
+          12.5%   { transform: translate(18px, 0px); opacity: 0.8; }
+          18.75%  { transform: translate(13px, 0px); opacity: 0.9; }
+          25%     { transform: translate(0px, 0px); opacity: 1; }
+          31.25%  { transform: translate(-13px, 0px); opacity: 0.9; }
+          37.5%   { transform: translate(-18px, 0px); opacity: 0.8; }
+          43.75%  { transform: translate(-13px, 0px); opacity: 0.7; }
+          50%     { transform: translate(0px, 0px); opacity: 0.8; }
+          56.25%  { transform: translate(13px, 0px); opacity: 0.7; }
+          62.5%   { transform: translate(18px, 0px); opacity: 0.8; }
+          68.75%  { transform: translate(13px, 0px); opacity: 0.9; }
+          75%     { transform: translate(0px, 0px); opacity: 1; }
+          81.25%  { transform: translate(-13px, 0px); opacity: 0.9; }
+          87.5%   { transform: translate(-18px, 0px); opacity: 0.8; }
+          93.75%  { transform: translate(-13px, 0px); opacity: 0.7; }
+          100%    { transform: translate(0px, 0px); opacity: 0.8; }
+        }
+
+        /* Breathing animation for sleeping ferret */
         @keyframes breathe {
           0%, 100% { transform: scale(1) translateY(0); }
           50% { transform: scale(1.015) translateY(-2px); }
         }
 
+        /* Shadow breathing */
+        @keyframes shadowBreathe {
+          0%, 100% { transform: scaleX(1); opacity: 0.6; }
+          50% { transform: scaleX(1.05); opacity: 0.8; }
+        }
+
+        /* Zzz appear */
         @keyframes zzzAppear {
           0% { opacity: 0; transform: translateY(4px); }
           100% { opacity: 0.6; transform: translateY(0); }
         }
 
+        /* Zzz float */
         @keyframes zzzFloat {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-4px); }
