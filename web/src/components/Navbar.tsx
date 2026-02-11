@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
@@ -22,10 +23,16 @@ export function Navbar() {
     <nav className="bg-white border-b border-primary/10 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/pets" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
-            <PawPrint className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#f5f0ff] to-[#ece5ff]">
+            <Image
+              src="/ferret-sleeping.png"
+              alt="PWellTrack"
+              width={36}
+              height={36}
+              className="w-full h-full object-contain"
+            />
           </div>
-          <span className="font-bold text-lg text-primary hidden sm:block">PWellTrack</span>
+          <span className="font-bold text-lg bg-gradient-to-r from-[#9B8EC8] to-[#B4A5D6] bg-clip-text text-transparent hidden sm:block">PWellTrack</span>
         </Link>
 
         <div className="flex items-center gap-1">
