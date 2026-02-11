@@ -63,6 +63,22 @@ export const authApi = {
   refresh: () => request<TokenResponse>('POST', '/auth/refresh'),
   google: (data: { email: string; name: string; supabase_token: string }) =>
     request<TokenResponse>('POST', '/auth/google', data),
+  uploadPhoto: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const token = tokenStorage.get();
+    const res = await fetch(`${API_BASE}/auth/photo`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json() as Promise<User>;
+  },
+  deletePhoto: () => request<User>('DELETE', '/auth/photo'),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    request<User>('PUT', '/auth/password', data),
+  deleteAccount: () => request<void>('DELETE', '/auth/account'),
 };
 
 // ── Pets API ──

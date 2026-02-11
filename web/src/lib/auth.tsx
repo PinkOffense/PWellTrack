@@ -14,6 +14,7 @@ interface AuthState {
   register: (name: string, email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthState>({
   register: async () => {},
   loginWithGoogle: async () => {},
   logout: () => {},
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -113,11 +115,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const me = await authApi.me();
+      setUser(me);
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user, loading, backendReachable,
       googleAvailable: isSupabaseConfigured && backendReachable,
-      login, register, loginWithGoogle, logout,
+      login, register, loginWithGoogle, logout, refreshUser,
     }}>
       {children}
     </AuthContext.Provider>
