@@ -6,18 +6,25 @@ import Image from 'next/image';
 /**
  * PWellTrack Ferret Mascot — Video animation + sleeping PNG
  *
- * Uses AI-generated Kling video for the walking/spinning animation,
- * then cross-fades to the sleeping PNG for the resting state.
- *
- * Animation sequence:
- *   1. Video plays: ferret walks, spins, curls up
- *   2. When video ends: cross-fade to sleeping PNG
- *   3. Sleeping: breathing animation + zzz
+ * Supports two modes:
+ * - Square (default): compact mascot with size prop
+ * - Banner: wide LinkedIn-style header with width/height props
  */
 
-export default function FerretMascot({ size = 180, animate = true }: { size?: number; animate?: boolean }) {
+interface FerretMascotProps {
+  size?: number;
+  width?: number;
+  height?: number;
+  animate?: boolean;
+  banner?: boolean;
+}
+
+export default function FerretMascot({ size = 180, width, height, animate = true, banner = false }: FerretMascotProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [phase, setPhase] = useState<'playing' | 'sleeping'>(animate ? 'playing' : 'sleeping');
+
+  const containerWidth = banner ? '100%' : (width ?? size);
+  const containerHeight = height ?? (banner ? 200 : size);
 
   useEffect(() => {
     if (!animate) return;
@@ -31,7 +38,6 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
 
     video.addEventListener('ended', handleEnded);
     video.play().catch(() => {
-      // autoplay blocked — go straight to sleeping
       setPhase('sleeping');
     });
 
@@ -42,20 +48,33 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
 
   return (
     <div
-      className="relative inline-flex items-center justify-center"
-      style={{ width: size, height: size }}
+      className={`relative flex items-center justify-center overflow-hidden ${banner ? 'w-full rounded-b-3xl' : 'inline-flex'}`}
+      style={{
+        width: containerWidth,
+        height: containerHeight,
+        ...(banner ? {
+          background: 'linear-gradient(135deg, #f5f0ff 0%, #ece5ff 30%, #e0d8f5 60%, #f0ecff 100%)',
+        } : {}),
+      }}
     >
       {/* Soft radial glow behind the ferret */}
       <div
-        className="absolute inset-0 rounded-full"
+        className="absolute rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(201,184,232,0.25) 0%, rgba(213,206,240,0.12) 50%, transparent 75%)',
-          transform: 'scale(1.15)',
+          width: banner ? containerHeight * 1.5 : '100%',
+          height: banner ? containerHeight * 1.5 : '100%',
+          background: 'radial-gradient(circle, rgba(201,184,232,0.3) 0%, rgba(213,206,240,0.15) 50%, transparent 75%)',
         }}
       />
 
       {/* Video animation — ferret walking/spinning */}
-      <div className={`ferret-video absolute inset-0 ${phase}`}>
+      <div
+        className={`ferret-video absolute ${phase}`}
+        style={{
+          height: '100%',
+          aspectRatio: '1',
+        }}
+      >
         <video
           ref={videoRef}
           src="/ferret-animation.mp4"
@@ -68,12 +87,18 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
       </div>
 
       {/* Sleeping ferret PNG (fades in after video ends) */}
-      <div className={`ferret-sleeping absolute inset-0 ${phase}`}>
+      <div
+        className={`ferret-sleeping absolute ${phase}`}
+        style={{
+          height: '100%',
+          aspectRatio: '1',
+        }}
+      >
         <Image
           src="/ferret-sleeping.png"
           alt="PWellTrack ferret mascot sleeping"
-          width={size}
-          height={size}
+          width={typeof containerHeight === 'number' ? containerHeight : 200}
+          height={typeof containerHeight === 'number' ? containerHeight : 200}
           className="w-full h-full object-contain"
           style={{ filter: 'drop-shadow(0 4px 14px rgba(155,142,200,0.3))' }}
           priority
@@ -81,17 +106,19 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
       </div>
 
       {/* Zzz text overlay */}
-      <div className={`zzz-overlay absolute top-0 right-0 ${phase}`}>
+      <div
+        className={`zzz-overlay absolute ${phase}`}
+        style={{
+          right: banner ? '35%' : '0',
+          top: banner ? '5%' : '0',
+        }}
+      >
         <span className="zzz-1 block text-[#C4B3E0] font-bold opacity-0">z</span>
         <span className="zzz-2 block text-[#D5CEF0] font-bold opacity-0 text-xs -mt-1">z</span>
         <span className="zzz-3 block text-[#E0DAF4] font-bold opacity-0 text-[10px] -mt-1">z</span>
       </div>
 
       <style jsx>{`
-        /* ═══════════════════════════════════════
-           VIDEO — plays then fades out
-           ═══════════════════════════════════════ */
-
         .ferret-video {
           transition: opacity 1s ease-in-out;
         }
@@ -104,10 +131,6 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
           opacity: 0;
           pointer-events: none;
         }
-
-        /* ═══════════════════════════════════════
-           SLEEPING IMAGE — fades in after video
-           ═══════════════════════════════════════ */
 
         .ferret-sleeping {
           transition: opacity 1s ease-in-out, transform 0.8s ease-in-out;
@@ -124,13 +147,8 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
           animation: breathe 3.5s 1s ease-in-out infinite;
         }
 
-        /* ═══════════════════════════════════════
-           ZZZ OVERLAY
-           ═══════════════════════════════════════ */
-
         .zzz-overlay {
           pointer-events: none;
-          transform: translate(15%, -10%);
         }
 
         .zzz-overlay.sleeping .zzz-1 {
@@ -143,10 +161,6 @@ export default function FerretMascot({ size = 180, animate = true }: { size?: nu
         .zzz-overlay.sleeping .zzz-3 {
           animation: zzzAppear 0.5s 2.3s ease-out forwards, zzzFloat 3s 2.8s ease-in-out infinite;
         }
-
-        /* ═══════════════════════════════════════
-           KEYFRAMES
-           ═══════════════════════════════════════ */
 
         @keyframes breathe {
           0%, 100% { transform: scale(1) translateY(0); }
