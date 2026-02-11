@@ -55,10 +55,12 @@ export default function LoginPage() {
       {/* Animated canvas background */}
       <FarmScene />
 
-      {/* Hero header — large ferret animation */}
-      <div className="relative z-10 w-full flex flex-col items-center pt-8 pb-2">
-        <FerretMascot size={280} animate={true} />
-        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent mt-1">
+      {/* Banner header — LinkedIn-style wide ferret animation */}
+      <div className="relative z-10 w-full max-w-lg">
+        <FerretMascot banner animate={true} height={220} />
+      </div>
+      <div className="relative z-10 text-center mt-3">
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-[#9B8EC8] via-[#B4A5D6] to-[#9B8EC8] bg-clip-text text-transparent">
           PWellTrack
         </h1>
         <p className="text-sm text-gray-400 mt-1 font-medium tracking-wide">{t('auth.signInContinue')}</p>
