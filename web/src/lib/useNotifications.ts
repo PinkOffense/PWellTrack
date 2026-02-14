@@ -22,6 +22,7 @@ export function useNotifications(enabled: boolean) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
   const pingTimer = useRef<ReturnType<typeof setInterval>>();
+  const dismissTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const dismiss = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -65,8 +66,12 @@ export function useNotifications(enabled: boolean) {
         };
         setNotifications(prev => [notif, ...prev]);
 
-        // Auto-dismiss after 15 seconds
-        setTimeout(() => dismiss(notif.id), 15_000);
+        // Auto-dismiss after 15 seconds (tracked for cleanup)
+        const timer = setTimeout(() => {
+          dismiss(notif.id);
+          dismissTimers.current.delete(timer);
+        }, 15_000);
+        dismissTimers.current.add(timer);
       } catch { /* ignore malformed messages */ }
     };
 
@@ -86,6 +91,9 @@ export function useNotifications(enabled: boolean) {
     return () => {
       clearTimeout(reconnectTimer.current);
       clearInterval(pingTimer.current);
+      // Clear all auto-dismiss timers
+      dismissTimers.current.forEach(t => clearTimeout(t));
+      dismissTimers.current.clear();
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;

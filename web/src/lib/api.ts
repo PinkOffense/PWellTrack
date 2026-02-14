@@ -33,24 +33,39 @@ export const tokenStorage = {
 };
 
 // ── HTTP client ──
+const REQUEST_TIMEOUT_MS = 15_000;
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenStorage.get();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
-    throw new Error(err.detail || `Error ${res.status}`);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
+      throw new Error(err.detail || `Error ${res.status}`);
+    }
+
+    if (res.status === 204) return undefined as unknown as T;
+    return res.json();
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-
-  if (res.status === 204) return undefined as T;
-  return res.json();
 }
 
 // ── Auth API ──

@@ -4,13 +4,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.feeding_log import FeedingLog
-from app.routers.pets import _get_pet_for_user
 from app.schemas.feeding import FeedingCreate, FeedingUpdate, FeedingOut
 
 router = APIRouter(tags=["feeding"])
+
+_PROTECTED_FIELDS = {"pet_id", "id"}
 
 
 @router.get("/pets/{pet_id}/feeding", response_model=list[FeedingOut])
@@ -21,7 +23,7 @@ async def list_feedings(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     q = select(FeedingLog).where(FeedingLog.pet_id == pet_id)
     if date_from:
         q = q.where(FeedingLog.datetime_ >= date_from)
@@ -39,7 +41,7 @@ async def create_feeding(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     log = FeedingLog(
         pet_id=pet_id,
         datetime_=data.datetime_ or datetime.now(timezone.utc),
@@ -64,9 +66,10 @@ async def update_feeding(
     log = await db.get(FeedingLog, feeding_id)
     if not log:
         raise HTTPException(status_code=404, detail="Feeding log not found")
-    await _get_pet_for_user(log.pet_id, current_user, db)
+    await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(log, key, value)
+        if key not in _PROTECTED_FIELDS:
+            setattr(log, key, value)
     await db.commit()
     await db.refresh(log)
     return FeedingOut.model_validate(log)
@@ -81,6 +84,6 @@ async def delete_feeding(
     log = await db.get(FeedingLog, feeding_id)
     if not log:
         raise HTTPException(status_code=404, detail="Feeding log not found")
-    await _get_pet_for_user(log.pet_id, current_user, db)
+    await get_pet_for_user(log.pet_id, current_user, db)
     await db.delete(log)
     await db.commit()

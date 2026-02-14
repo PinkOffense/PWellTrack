@@ -3,13 +3,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.medication import Medication
-from app.routers.pets import _get_pet_for_user
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationOut
 
 router = APIRouter(tags=["medications"])
+
+_PROTECTED_FIELDS = {"pet_id", "id"}
 
 
 @router.get("/pets/{pet_id}/medications", response_model=list[MedicationOut])
@@ -18,7 +20,7 @@ async def list_medications(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     result = await db.execute(
         select(Medication).where(Medication.pet_id == pet_id).order_by(Medication.start_date.desc())
     )
@@ -32,7 +34,7 @@ async def create_medication(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     med = Medication(**data.model_dump(), pet_id=pet_id)
     db.add(med)
     await db.commit()
@@ -50,9 +52,10 @@ async def update_medication(
     med = await db.get(Medication, medication_id)
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
-    await _get_pet_for_user(med.pet_id, current_user, db)
+    await get_pet_for_user(med.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(med, key, value)
+        if key not in _PROTECTED_FIELDS:
+            setattr(med, key, value)
     await db.commit()
     await db.refresh(med)
     return MedicationOut.model_validate(med)
@@ -67,6 +70,6 @@ async def delete_medication(
     med = await db.get(Medication, medication_id)
     if not med:
         raise HTTPException(status_code=404, detail="Medication not found")
-    await _get_pet_for_user(med.pet_id, current_user, db)
+    await get_pet_for_user(med.pet_id, current_user, db)
     await db.delete(med)
     await db.commit()

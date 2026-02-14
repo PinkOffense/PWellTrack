@@ -16,6 +16,7 @@ export default function SettingsPage() {
 
   // Photo
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState('');
 
   // Password form
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -51,18 +52,24 @@ export default function SettingsPage() {
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPhotoError('');
     try {
       await authApi.uploadPhoto(file);
       refreshUser?.();
-    } catch { /* silently fail */ }
+    } catch (err: any) {
+      setPhotoError(err.message || t('common.error'));
+    }
     e.target.value = '';
   };
 
   const handleRemovePhoto = async () => {
+    setPhotoError('');
     try {
       await authApi.deletePhoto();
       refreshUser?.();
-    } catch { /* silently fail */ }
+    } catch (err: any) {
+      setPhotoError(err.message || t('common.error'));
+    }
   };
 
   // Password change handler
@@ -163,6 +170,11 @@ export default function SettingsPage() {
               </div>
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadPhoto} />
+            {photoError && (
+              <div className="mt-3 bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">
+                {photoError}
+              </div>
+            )}
           </div>
         )}
 

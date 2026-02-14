@@ -8,10 +8,11 @@ import { useAuth } from '@/lib/auth';
 import { petsApi, vaccinesApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
+import { Modal } from '@/components/Modal';
 import {
-  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2,
+  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2, Pencil,
 } from 'lucide-react';
-import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
+import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const QUICK_ACTIONS = [
   { key: 'feeding', icon: Utensils, color: 'from-orange-400 to-amber-300', href: 'feeding' },
@@ -21,6 +22,19 @@ const QUICK_ACTIONS = [
   { key: 'events', icon: Calendar, color: 'from-pink-400 to-rose-300', href: 'events' },
   { key: 'symptoms', icon: Activity, color: 'from-red-400 to-orange-300', href: 'symptoms' },
 ];
+
+function petAge(dob?: string): string | null {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0) { years--; months += 12; }
+  if (years > 0) return `${years}a ${months}m`;
+  if (months > 0) return `${months}m`;
+  const days = Math.floor((now.getTime() - birth.getTime()) / 86400000);
+  return `${days}d`;
+}
 
 export default function PetDashboardPage() {
   const { t } = useTranslation();
@@ -35,29 +49,75 @@ export default function PetDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // Edit pet state
+  const [showEdit, setShowEdit] = useState(false);
+  const [editData, setEditData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
   }, [user, authLoading, router]);
 
+  const loadData = async () => {
+    try {
+      const [p, d, v] = await Promise.all([
+        petsApi.get(petId),
+        petsApi.today(petId),
+        vaccinesApi.list(petId),
+      ]);
+      setPet(p);
+      setDash(d);
+      setVaccines(v);
+    } catch {
+      router.replace('/pets');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user || !petId) return;
-    (async () => {
-      try {
-        const [p, d, v] = await Promise.all([
-          petsApi.get(petId),
-          petsApi.today(petId),
-          vaccinesApi.list(petId),
-        ]);
-        setPet(p);
-        setDash(d);
-        setVaccines(v);
-      } catch {
-        router.replace('/pets');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadData();
   }, [user, petId]);
+
+  const openEdit = () => {
+    if (!pet) return;
+    setEditData({
+      name: pet.name,
+      species: pet.species,
+      breed: pet.breed || '',
+      weight_kg: pet.weight_kg ? String(pet.weight_kg) : '',
+      date_of_birth: pet.date_of_birth || '',
+      sex: pet.sex || '',
+    });
+    setEditError('');
+    setShowEdit(true);
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+    if (!editData.name.trim()) { setEditError(t('auth.fillAllFields')); return; }
+    setEditSaving(true);
+    try {
+      const payload: Partial<PetCreate> = {
+        name: editData.name.trim(),
+        species: editData.species,
+        breed: editData.breed.trim() || undefined,
+        weight_kg: editData.weight_kg ? Number(editData.weight_kg) : undefined,
+        date_of_birth: editData.date_of_birth || undefined,
+        sex: editData.sex || undefined,
+      };
+      const updated = await petsApi.update(petId, payload);
+      setPet(updated);
+      setShowEdit(false);
+    } catch (err: any) {
+      setEditError(err.message || t('common.error'));
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm(t('common.confirmDelete'))) return;
@@ -94,6 +154,7 @@ export default function PetDashboardPage() {
 
   if (!pet) return null;
   const fs = feedingStatus();
+  const age = petAge(pet.date_of_birth);
 
   return (
     <>
@@ -111,12 +172,19 @@ export default function PetDashboardPage() {
             <p className="text-txt-secondary capitalize">
               {t(`pets.${pet.species}` as any)}
               {pet.breed && ` · ${pet.breed}`}
+              {pet.sex && ` · ${t(`pets.${pet.sex}` as any)}`}
               {pet.weight_kg && ` · ${pet.weight_kg} kg`}
+              {age && ` · ${age}`}
             </p>
           </div>
-          <button onClick={handleDelete} disabled={deleting} className="btn-danger" title={t('common.delete')}>
-            <Trash2 className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={openEdit} className="btn-secondary p-2" title={t('common.edit')}>
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button onClick={handleDelete} disabled={deleting} className="btn-danger" title={t('common.delete')}>
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Today's overview */}
@@ -225,6 +293,73 @@ export default function PetDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Edit pet modal */}
+        <Modal open={showEdit} onClose={() => setShowEdit(false)} title={t('pets.editPet')}>
+          <form onSubmit={handleEdit} className="space-y-4">
+            {editError && <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">{editError}</div>}
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.name')} *</label>
+              <input value={editData.name} onChange={e => setEditData(d => ({ ...d, name: e.target.value }))} className="input" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.species')} *</label>
+              <div className="flex gap-2">
+                {['dog', 'cat', 'exotic'].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setEditData(d => ({ ...d, species: s }))}
+                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                      ${editData.species === s
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
+                  >
+                    {t(`pets.${s}` as any)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>
+              <input value={editData.breed} onChange={e => setEditData(d => ({ ...d, breed: e.target.value }))} className="input" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
+                <input type="number" step="0.1" value={editData.weight_kg} onChange={e => setEditData(d => ({ ...d, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.dob')}</label>
+                <input type="date" value={editData.date_of_birth} onChange={e => setEditData(d => ({ ...d, date_of_birth: e.target.value }))} className="input" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.sex')}</label>
+              <div className="flex gap-2">
+                {[{ value: '', label: '—' }, { value: 'male', label: t('pets.male') }, { value: 'female', label: t('pets.female') }].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEditData(d => ({ ...d, sex: opt.value }))}
+                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                      ${editData.sex === opt.value
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowEdit(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
+              <button type="submit" disabled={editSaving} className="btn-primary flex-1">
+                {editSaving ? t('common.loading') : t('common.save')}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </main>
     </>
   );
