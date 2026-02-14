@@ -30,7 +30,8 @@ export default function FerretMascot({ animate = true }: { animate?: boolean }) 
         src="/ferret-animation.mp4"
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
+        poster="/ferret-poster.jpg"
         className="w-full h-full object-cover"
       />
     </div>

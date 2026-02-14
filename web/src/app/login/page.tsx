@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
-import FarmScene from '@/components/FarmScene';
-import FerretMascot from '@/components/FerretMascot';
+import dynamic from 'next/dynamic';
+
+const FarmScene = dynamic(() => import('@/components/FarmScene'), { ssr: false });
+const FerretMascot = dynamic(() => import('@/components/FerretMascot'), { ssr: false });
 
 function GoogleIcon() {
   return (

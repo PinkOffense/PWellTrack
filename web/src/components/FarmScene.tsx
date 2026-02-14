@@ -26,15 +26,17 @@ interface Particle {
   phase: number;
 }
 
+const PARTICLE_COUNT = 18;
+
 function createParticles(count: number): Particle[] {
   const particles: Particle[] = [];
   const colors = [
-    'rgba(201,184,232,',  // soft lavender
-    'rgba(213,206,240,',  // lighter lavender
-    'rgba(180,165,214,',  // muted lavender
-    'rgba(224,218,244,',  // very light lavender
-    'rgba(242,200,210,',  // soft blush
-    'rgba(232,212,188,',  // warm cream
+    'rgba(201,184,232,',
+    'rgba(213,206,240,',
+    'rgba(180,165,214,',
+    'rgba(224,218,244,',
+    'rgba(242,200,210,',
+    'rgba(232,212,188,',
   ];
 
   for (let i = 0; i < count; i++) {
@@ -58,9 +60,10 @@ function createParticles(count: number): Particle[] {
 
 export default function FarmScene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>(createParticles(28));
+  const particlesRef = useRef<Particle[]>(createParticles(PARTICLE_COUNT));
   const animRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
+  const sizeRef = useRef({ w: 0, h: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -68,13 +71,13 @@ export default function FarmScene() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Paw & heart paths as Path2D (scaled to unit size)
     const pawPath = new Path2D(PAW_PATH);
     const heartPath = new Path2D(HEART_PATH);
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = canvas.getBoundingClientRect();
+      sizeRef.current = { w: rect.width, h: rect.height };
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -84,8 +87,9 @@ export default function FarmScene() {
     window.addEventListener('resize', resize);
 
     const animate = () => {
-      const w = canvas.getBoundingClientRect().width;
-      const h = canvas.getBoundingClientRect().height;
+      const { w, h } = sizeRef.current;
+      if (w === 0 || h === 0) { animRef.current = requestAnimationFrame(animate); return; }
+
       timeRef.current += 0.016;
       const t = timeRef.current;
 
@@ -121,12 +125,11 @@ export default function FarmScene() {
       const baseY = h * 0.5;
       const pulseOffset = (t * 40) % w;
 
-      for (let px = 0; px < w; px += 2) {
+      for (let px = 0; px < w; px += 3) {
         const localX = (px + pulseOffset) % w;
         const normalX = localX / w;
 
         let py = baseY;
-        // ECG-like pattern
         const segment = (normalX * 4) % 1;
         const inBeat = (normalX * 4) % 4;
 
@@ -147,12 +150,10 @@ export default function FarmScene() {
       // ─── Floating particles ───
       const particles = particlesRef.current;
       for (const p of particles) {
-        // Move upward
         p.y -= p.speed;
         p.x += p.drift + Math.sin(t * 0.8 + p.phase) * 0.08;
         p.rotation += p.rotSpeed;
 
-        // Reset when off screen
         if (p.y < -10) {
           p.y = 105 + Math.random() * 15;
           p.x = Math.random() * 100;
@@ -166,13 +167,11 @@ export default function FarmScene() {
         ctx.translate(px, py);
         ctx.rotate((p.rotation * Math.PI) / 180);
 
-        // Fade in/out at edges
         let fadeOpacity = p.opacity;
         if (p.y > 90) fadeOpacity *= (100 - p.y) / 10;
         if (p.y < 10) fadeOpacity *= p.y / 10;
 
         if (p.type === 'dot') {
-          // Soft glowing dot
           const dotGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
           dotGrad.addColorStop(0, p.color + (fadeOpacity * 1.2).toFixed(2) + ')');
           dotGrad.addColorStop(1, p.color + '0)');
@@ -184,14 +183,9 @@ export default function FarmScene() {
           const scale = p.size / 24;
           ctx.scale(scale, scale);
           ctx.translate(-12, -12);
-
           ctx.fillStyle = p.color + fadeOpacity.toFixed(2) + ')';
-
-          if (p.type === 'paw') {
-            ctx.fill(pawPath);
-          } else {
-            ctx.fill(heartPath);
-          }
+          if (p.type === 'paw') ctx.fill(pawPath);
+          else ctx.fill(heartPath);
         }
 
         ctx.restore();
@@ -199,12 +193,12 @@ export default function FarmScene() {
 
       // ─── Soft wave at the very bottom ───
       ctx.save();
-      for (let wave = 0; wave < 3; wave++) {
+      for (let wave = 0; wave < 2; wave++) {
         const waveY = h - 8 + wave * 3;
-        const waveAlpha = 0.03 - wave * 0.008;
+        const waveAlpha = 0.03 - wave * 0.01;
         ctx.beginPath();
         ctx.moveTo(0, h);
-        for (let wx = 0; wx <= w; wx += 4) {
+        for (let wx = 0; wx <= w; wx += 6) {
           const wy = waveY + Math.sin((wx / w) * Math.PI * 3 + t * (0.5 + wave * 0.2)) * (4 - wave);
           ctx.lineTo(wx, wy);
         }
