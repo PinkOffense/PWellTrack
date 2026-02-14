@@ -1,9 +1,11 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.pet import Pet
@@ -17,13 +19,6 @@ from app.schemas.event import EventOut
 from app.schemas.medication import MedicationOut
 
 router = APIRouter(prefix="/pets", tags=["pets"])
-
-
-async def _get_pet_for_user(pet_id: int, user: User, db: AsyncSession) -> Pet:
-    pet = await db.get(Pet, pet_id)
-    if not pet or pet.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Pet not found")
-    return pet
 
 
 @router.get("/", response_model=list[PetOut])
@@ -54,7 +49,7 @@ async def get_pet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
     return PetOut.model_validate(pet)
 
 
@@ -65,7 +60,7 @@ async def update_pet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(pet, key, value)
     await db.commit()
@@ -79,7 +74,7 @@ async def delete_pet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
     await db.delete(pet)
     await db.commit()
 
@@ -91,7 +86,7 @@ async def upload_pet_photo(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
 
     # Validate file type
     allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
@@ -106,7 +101,9 @@ async def upload_pet_photo(
 
     import base64
     b64 = base64.b64encode(contents).decode()
-    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    # Map content_type to extension for reliable data URI
+    mime_ext = {"image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+    ext = mime_ext.get(file.content_type, "jpeg")
     pet.photo_url = f"data:image/{ext};base64,{b64}"
     await db.commit()
     await db.refresh(pet)
@@ -119,7 +116,7 @@ async def delete_pet_photo(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
     pet.photo_url = None
     await db.commit()
     await db.refresh(pet)
@@ -132,10 +129,17 @@ async def pet_today(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = await _get_pet_for_user(pet_id, current_user, db)
+    pet = await get_pet_for_user(pet_id, current_user, db)
 
-    today_start = datetime.combine(date.today(), time.min).replace(tzinfo=timezone.utc)
-    today_end = datetime.combine(date.today(), time.max).replace(tzinfo=timezone.utc)
+    # Use user's timezone for "today" calculation
+    try:
+        user_tz = ZoneInfo(current_user.timezone)
+    except Exception:
+        user_tz = timezone.utc
+    user_now = datetime.now(user_tz)
+    user_today = user_now.date()
+    today_start = datetime.combine(user_today, time.min, tzinfo=user_tz).astimezone(timezone.utc)
+    today_end = datetime.combine(user_today, time.max, tzinfo=user_tz).astimezone(timezone.utc)
 
     # Feeding summary
     feeding_result = await db.execute(
@@ -191,7 +195,7 @@ async def pet_today(
     upcoming_events = [EventOut.model_validate(e) for e in events_result.scalars().all()]
 
     # Active medications
-    today = date.today()
+    today = user_today
     meds_result = await db.execute(
         select(Medication).where(
             Medication.pet_id == pet_id,

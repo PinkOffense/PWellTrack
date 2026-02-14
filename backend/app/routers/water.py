@@ -4,13 +4,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.water_log import WaterLog
-from app.routers.pets import _get_pet_for_user
 from app.schemas.water import WaterCreate, WaterUpdate, WaterOut
 
 router = APIRouter(tags=["water"])
+
+_PROTECTED_FIELDS = {"pet_id", "id"}
 
 
 @router.get("/pets/{pet_id}/water", response_model=list[WaterOut])
@@ -19,7 +21,7 @@ async def list_water(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     result = await db.execute(
         select(WaterLog).where(WaterLog.pet_id == pet_id).order_by(WaterLog.datetime_.desc())
     )
@@ -33,7 +35,7 @@ async def create_water(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     log = WaterLog(
         pet_id=pet_id,
         datetime_=data.datetime_ or datetime.now(timezone.utc),
@@ -56,9 +58,10 @@ async def update_water(
     log = await db.get(WaterLog, water_id)
     if not log:
         raise HTTPException(status_code=404, detail="Water log not found")
-    await _get_pet_for_user(log.pet_id, current_user, db)
+    await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(log, key, value)
+        if key not in _PROTECTED_FIELDS:
+            setattr(log, key, value)
     await db.commit()
     await db.refresh(log)
     return WaterOut.model_validate(log)
@@ -73,6 +76,6 @@ async def delete_water(
     log = await db.get(WaterLog, water_id)
     if not log:
         raise HTTPException(status_code=404, detail="Water log not found")
-    await _get_pet_for_user(log.pet_id, current_user, db)
+    await get_pet_for_user(log.pet_id, current_user, db)
     await db.delete(log)
     await db.commit()

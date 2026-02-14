@@ -51,9 +51,10 @@ export default function PetsPage() {
   const [vaccineData, setVaccineData] = useState<Record<number, Vaccine[]>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '' });
+  const [formData, setFormData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [photoError, setPhotoError] = useState('');
   const [photoMenuId, setPhotoMenuId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoTargetRef = useRef<number | null>(null);
@@ -109,9 +110,11 @@ export default function PetsPage() {
         species: formData.species,
         breed: formData.breed.trim() || undefined,
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
+        date_of_birth: formData.date_of_birth || undefined,
+        sex: formData.sex || undefined,
       });
       setShowForm(false);
-      setFormData({ name: '', species: 'dog', breed: '', weight_kg: '' });
+      setFormData({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
       loadPets();
     } catch (err: any) {
       setFormError(err.message);
@@ -130,20 +133,28 @@ export default function PetsPage() {
     const file = e.target.files?.[0];
     const petId = photoTargetRef.current;
     if (!file || !petId) return;
+    setPhotoError('');
     try {
       const updated = await petsApi.uploadPhoto(petId, file);
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
-    } catch { /* silently fail */ }
+    } catch (err: any) {
+      setPhotoError(err.message || t('common.error'));
+      setTimeout(() => setPhotoError(''), 4000);
+    }
     e.target.value = '';
     photoTargetRef.current = null;
   };
 
   const handleRemovePhoto = async (petId: number) => {
     setPhotoMenuId(null);
+    setPhotoError('');
     try {
       const updated = await petsApi.deletePhoto(petId);
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
-    } catch { /* silently fail */ }
+    } catch (err: any) {
+      setPhotoError(err.message || t('common.error'));
+      setTimeout(() => setPhotoError(''), 4000);
+    }
   };
 
   if (authLoading || loading) {
@@ -169,6 +180,12 @@ export default function PetsPage() {
             {t('pets.addPet')}
           </button>
         </div>
+
+        {photoError && (
+          <div className="mb-4 bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">
+            {photoError}
+          </div>
+        )}
 
         {pets.length === 0 ? (
           <EmptyState
@@ -338,9 +355,33 @@ export default function PetsPage() {
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>
               <input value={formData.breed} onChange={e => setFormData(f => ({ ...f, breed: e.target.value }))} className="input" placeholder="Golden Retriever..." />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
+                <input type="number" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.dob')}</label>
+                <input type="date" value={formData.date_of_birth} onChange={e => setFormData(f => ({ ...f, date_of_birth: e.target.value }))} className="input" />
+              </div>
+            </div>
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
-              <input type="number" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.sex')}</label>
+              <div className="flex gap-2">
+                {[{ value: '', label: '—' }, { value: 'male', label: t('pets.male') }, { value: 'female', label: t('pets.female') }].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFormData(f => ({ ...f, sex: opt.value }))}
+                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                      ${formData.sex === opt.value
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                        : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>

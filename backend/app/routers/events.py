@@ -3,13 +3,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.event import Event
-from app.routers.pets import _get_pet_for_user
 from app.schemas.event import EventCreate, EventUpdate, EventOut
 
 router = APIRouter(tags=["events"])
+
+_PROTECTED_FIELDS = {"pet_id", "id"}
 
 
 @router.get("/pets/{pet_id}/events", response_model=list[EventOut])
@@ -18,7 +20,7 @@ async def list_events(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     result = await db.execute(
         select(Event).where(Event.pet_id == pet_id).order_by(Event.datetime_start.desc())
     )
@@ -32,7 +34,7 @@ async def create_event(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    await _get_pet_for_user(pet_id, current_user, db)
+    await get_pet_for_user(pet_id, current_user, db)
     event = Event(**data.model_dump(), pet_id=pet_id)
     db.add(event)
     await db.commit()
@@ -50,9 +52,10 @@ async def update_event(
     event = await db.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    await _get_pet_for_user(event.pet_id, current_user, db)
+    await get_pet_for_user(event.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(event, key, value)
+        if key not in _PROTECTED_FIELDS:
+            setattr(event, key, value)
     await db.commit()
     await db.refresh(event)
     return EventOut.model_validate(event)
@@ -67,6 +70,6 @@ async def delete_event(
     event = await db.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    await _get_pet_for_user(event.pet_id, current_user, db)
+    await get_pet_for_user(event.pet_id, current_user, db)
     await db.delete(event)
     await db.commit()
