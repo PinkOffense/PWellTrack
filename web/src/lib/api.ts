@@ -3,6 +3,7 @@ import type {
   FeedingLog, FeedingCreate, WaterLog, WaterCreate,
   Vaccine, VaccineCreate, Medication, MedicationCreate,
   PetEvent, EventCreate, Symptom, SymptomCreate,
+  WeightLog, WeightCreate,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -68,6 +69,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
 }
 
+function buildListPath(base: string, dateFrom?: string, dateTo?: string): string {
+  const params = new URLSearchParams();
+  if (dateFrom) params.set('date_from', dateFrom);
+  if (dateTo) params.set('date_to', dateTo);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
 // ── Auth API ──
 export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
@@ -121,44 +130,65 @@ export const petsApi = {
 
 // ── Feeding API ──
 export const feedingApi = {
-  list: (petId: number) => request<FeedingLog[]>('GET', `/pets/${petId}/feeding`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<FeedingLog[]>('GET', buildListPath(`/pets/${petId}/feeding`, dateFrom, dateTo)),
   create: (petId: number, data: FeedingCreate) => request<FeedingLog>('POST', `/pets/${petId}/feeding`, data),
+  update: (id: number, data: Partial<FeedingCreate>) => request<FeedingLog>('PUT', `/feeding/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/feeding/${id}`),
 };
 
 // ── Water API ──
 export const waterApi = {
-  list: (petId: number) => request<WaterLog[]>('GET', `/pets/${petId}/water`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<WaterLog[]>('GET', buildListPath(`/pets/${petId}/water`, dateFrom, dateTo)),
   create: (petId: number, data: WaterCreate) => request<WaterLog>('POST', `/pets/${petId}/water`, data),
+  update: (id: number, data: Partial<WaterCreate>) => request<WaterLog>('PUT', `/water/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/water/${id}`),
 };
 
 // ── Vaccines API ──
 export const vaccinesApi = {
-  list: (petId: number) => request<Vaccine[]>('GET', `/pets/${petId}/vaccines`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<Vaccine[]>('GET', buildListPath(`/pets/${petId}/vaccines`, dateFrom, dateTo)),
   create: (petId: number, data: VaccineCreate) => request<Vaccine>('POST', `/pets/${petId}/vaccines`, data),
+  update: (id: number, data: Partial<VaccineCreate>) => request<Vaccine>('PUT', `/vaccines/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/vaccines/${id}`),
 };
 
 // ── Medications API ──
 export const medicationsApi = {
-  list: (petId: number) => request<Medication[]>('GET', `/pets/${petId}/medications`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<Medication[]>('GET', buildListPath(`/pets/${petId}/medications`, dateFrom, dateTo)),
   create: (petId: number, data: MedicationCreate) => request<Medication>('POST', `/pets/${petId}/medications`, data),
+  update: (id: number, data: Partial<MedicationCreate>) => request<Medication>('PUT', `/medications/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/medications/${id}`),
 };
 
 // ── Events API ──
 export const eventsApi = {
-  list: (petId: number) => request<PetEvent[]>('GET', `/pets/${petId}/events`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<PetEvent[]>('GET', buildListPath(`/pets/${petId}/events`, dateFrom, dateTo)),
   create: (petId: number, data: EventCreate) => request<PetEvent>('POST', `/pets/${petId}/events`, data),
+  update: (id: number, data: Partial<EventCreate>) => request<PetEvent>('PUT', `/events/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/events/${id}`),
 };
 
 // ── Symptoms API ──
 export const symptomsApi = {
-  list: (petId: number) => request<Symptom[]>('GET', `/pets/${petId}/symptoms`),
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<Symptom[]>('GET', buildListPath(`/pets/${petId}/symptoms`, dateFrom, dateTo)),
   create: (petId: number, data: SymptomCreate) => request<Symptom>('POST', `/pets/${petId}/symptoms`, data),
+  update: (id: number, data: Partial<SymptomCreate>) => request<Symptom>('PUT', `/symptoms/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/symptoms/${id}`),
+};
+
+// ── Weight API ──
+export const weightApi = {
+  list: (petId: number, dateFrom?: string, dateTo?: string) =>
+    request<WeightLog[]>('GET', buildListPath(`/pets/${petId}/weight`, dateFrom, dateTo)),
+  create: (petId: number, data: WeightCreate) => request<WeightLog>('POST', `/pets/${petId}/weight`, data),
+  update: (id: number, data: Partial<WeightCreate>) => request<WeightLog>('PUT', `/weight/${id}`, data),
+  delete: (id: number) => request<void>('DELETE', `/weight/${id}`),
 };
 
 // ── Health check ──

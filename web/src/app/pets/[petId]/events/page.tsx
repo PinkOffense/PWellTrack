@@ -9,13 +9,14 @@ import type { PetEvent } from '@/lib/types';
 
 const EVENT_TYPES = ['vet_visit', 'vaccine', 'grooming', 'other'] as const;
 
-function EventForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => void }) {
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState('vet_visit');
-  const [dateTime, setDateTime] = useState('');
-  const [duration, setDuration] = useState('');
-  const [location, setLocation] = useState('');
-  const [notes, setNotes] = useState('');
+function EventForm({ petId, t, onSave, editingItem }: { petId: number; t: any; onSave: () => void; editingItem?: PetEvent }) {
+  const [title, setTitle] = useState(editingItem?.title ?? '');
+  const [type, setType] = useState(editingItem?.type ?? 'vet_visit');
+  const [dateTime, setDateTime] = useState(editingItem?.datetime_start ? editingItem.datetime_start.slice(0, 16) : '');
+  const [duration, setDuration] = useState(editingItem?.duration_minutes ? String(editingItem.duration_minutes) : '');
+  const [location, setLocation] = useState(editingItem?.location ?? '');
+  const [reminder, setReminder] = useState(editingItem?.reminder_minutes_before ? String(editingItem.reminder_minutes_before) : '');
+  const [notes, setNotes] = useState(editingItem?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,14 +26,17 @@ function EventForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => 
     if (!title.trim() || !dateTime) { setError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await eventsApi.create(petId, {
+      const payload = {
         title: title.trim(),
         type,
         datetime_start: new Date(dateTime).toISOString(),
         duration_minutes: duration ? Number(duration) : undefined,
         location: location.trim() || undefined,
+        reminder_minutes_before: reminder ? Number(reminder) : undefined,
         notes: notes.trim() || undefined,
-      });
+      };
+      if (editingItem) await eventsApi.update(editingItem.id, payload);
+      else await eventsApi.create(petId, payload);
       onSave();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
@@ -49,13 +53,9 @@ function EventForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => 
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('events.type')} *</label>
         <div className="flex flex-wrap gap-2">
           {EVENT_TYPES.map(et => (
-            <button
-              key={et}
-              type="button"
-              onClick={() => setType(et)}
+            <button key={et} type="button" onClick={() => setType(et)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all
-                ${type === et ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-txt-secondary'}`}
-            >
+                ${type === et ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-txt-secondary'}`}>
               {t(`events.${et}` as any)}
             </button>
           ))}
@@ -74,6 +74,17 @@ function EventForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => 
           <label className="text-sm font-medium text-txt-secondary block mb-1">{t('events.location')}</label>
           <input value={location} onChange={e => setLocation(e.target.value)} className="input" />
         </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium text-txt-secondary block mb-1">{t('events.reminder')}</label>
+        <select value={reminder} onChange={e => setReminder(e.target.value)} className="input">
+          <option value="">{t('events.noReminder')}</option>
+          <option value="15">{t('events.reminder15min')}</option>
+          <option value="30">{t('events.reminder30min')}</option>
+          <option value="60">{t('events.reminder1h')}</option>
+          <option value="120">{t('events.reminder2h')}</option>
+          <option value="1440">{t('events.reminder1day')}</option>
+        </select>
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('common.notes')}</label>
@@ -96,6 +107,8 @@ export default function EventsPage() {
       icon={<Calendar className="w-8 h-8" />}
       listFn={eventsApi.list}
       deleteFn={eventsApi.delete}
+      updateFn={eventsApi.update}
+      supportsDateFilter
       renderItem={(item, t) => (
         <>
           <div className="flex items-center gap-2">
@@ -105,9 +118,18 @@ export default function EventsPage() {
           <p className="text-sm text-txt-secondary">{new Date(item.datetime_start).toLocaleString()}</p>
           {item.location && <p className="text-xs text-txt-muted">{item.location}</p>}
           {item.duration_minutes && <p className="text-xs text-txt-muted">{item.duration_minutes} min</p>}
+          {item.reminder_minutes_before && (
+            <p className="text-xs text-purple-600 mt-0.5">
+              {item.reminder_minutes_before >= 1440 ? t('events.reminder1day')
+                : item.reminder_minutes_before >= 60 ? `${item.reminder_minutes_before / 60}h antes`
+                : `${item.reminder_minutes_before} min antes`}
+            </p>
+          )}
         </>
       )}
-      renderForm={({ petId, t, onSave }) => <EventForm petId={petId} t={t} onSave={onSave} />}
+      renderForm={({ petId, t, onSave, editingItem }) => (
+        <EventForm key={editingItem?.id ?? 'new'} petId={petId} t={t} onSave={onSave} editingItem={editingItem} />
+      )}
     />
   );
 }

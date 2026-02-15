@@ -6,6 +6,7 @@ from app.models.vaccine import Vaccine
 from app.models.medication import Medication
 from app.models.event import Event
 from app.models.symptom import Symptom
+from app.models.weight_log import WeightLog
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "Medication",
     "Event",
     "Symptom",
+    "WeightLog",
 ]

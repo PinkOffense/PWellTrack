@@ -12,6 +12,8 @@ export default {
     notes: 'Notes',
     confirmDelete: 'Are you sure you want to delete this?',
     noData: 'No records yet',
+    dateFrom: 'From',
+    dateTo: 'To',
   },
   auth: {
     login: 'Sign In',
@@ -90,6 +92,7 @@ export default {
     noRecords: 'No medications',
     addMedication: 'Add Medication',
     ongoing: 'Ongoing',
+    timesOfDay: 'Times of day',
   },
   events: {
     title: 'Events',
@@ -104,6 +107,14 @@ export default {
     vaccine: 'Vaccine',
     grooming: 'Grooming',
     other: 'Other',
+    vet_visit: 'Vet visit',
+    reminder: 'Reminder',
+    noReminder: 'No reminder',
+    reminder15min: '15 min before',
+    reminder30min: '30 min before',
+    reminder1h: '1 hour before',
+    reminder2h: '2 hours before',
+    reminder1day: '1 day before',
   },
   symptoms: {
     title: 'Symptoms',
@@ -129,6 +140,9 @@ export default {
     upcomingEvents: 'Upcoming Events',
     activeMeds: 'Active Medications',
     quickActions: 'Quick Actions',
+    trends: 'Last 7 Days',
+    feedingTrend: 'Feeding',
+    waterTrend: 'Water',
   },
   notifications: {
     medicationReminder: 'Medication',
@@ -150,6 +164,13 @@ export default {
     deleteWarning: 'This action is permanent. All your data including pets, feeding logs, medications, and events will be permanently deleted.',
     typeDelete: 'Type DELETE to confirm',
     confirmDelete: 'Delete My Account',
+  },
+  weight: {
+    title: 'Weight',
+    logWeight: 'Log Weight',
+    weightKg: 'Weight (kg)',
+    noRecords: 'No weight records',
+    weightHistory: 'Weight History',
   },
   settings: {
     title: 'Settings',

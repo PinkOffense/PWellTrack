@@ -7,11 +7,11 @@ import { RecordPage } from '@/components/RecordPage';
 import { Utensils } from 'lucide-react';
 import type { FeedingLog } from '@/lib/types';
 
-function FeedingForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => void }) {
-  const [foodType, setFoodType] = useState('');
-  const [actual, setActual] = useState('');
-  const [planned, setPlanned] = useState('');
-  const [notes, setNotes] = useState('');
+function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any; onSave: () => void; editingItem?: FeedingLog }) {
+  const [foodType, setFoodType] = useState(editingItem?.food_type ?? '');
+  const [actual, setActual] = useState(editingItem ? String(editingItem.actual_amount_grams) : '');
+  const [planned, setPlanned] = useState(editingItem?.planned_amount_grams ? String(editingItem.planned_amount_grams) : '');
+  const [notes, setNotes] = useState(editingItem?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,18 +21,17 @@ function FeedingForm({ petId, t, onSave }: { petId: number; t: any; onSave: () =
     if (!foodType.trim() || !actual.trim()) { setError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await feedingApi.create(petId, {
+      const payload = {
         food_type: foodType.trim(),
         actual_amount_grams: Number(actual),
         planned_amount_grams: planned ? Number(planned) : undefined,
         notes: notes.trim() || undefined,
-      });
+      };
+      if (editingItem) await feedingApi.update(editingItem.id, payload);
+      else await feedingApi.create(petId, payload);
       onSave();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -71,6 +70,8 @@ export default function FeedingPage() {
       icon={<Utensils className="w-8 h-8" />}
       listFn={feedingApi.list}
       deleteFn={feedingApi.delete}
+      updateFn={feedingApi.update}
+      supportsDateFilter
       renderItem={(item, t) => (
         <>
           <div className="flex items-center gap-2 mb-1">
@@ -84,7 +85,9 @@ export default function FeedingPage() {
           {item.notes && <p className="text-sm text-txt-secondary mt-1">{item.notes}</p>}
         </>
       )}
-      renderForm={({ petId, t, onSave }) => <FeedingForm petId={petId} t={t} onSave={onSave} />}
+      renderForm={({ petId, t, onSave, editingItem }) => (
+        <FeedingForm key={editingItem?.id ?? 'new'} petId={petId} t={t} onSave={onSave} editingItem={editingItem} />
+      )}
     />
   );
 }

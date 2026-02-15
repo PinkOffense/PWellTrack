@@ -7,16 +7,16 @@ from app.core.database import get_db
 from app.core.dependencies import get_pet_for_user
 from app.core.security import get_current_user
 from app.models.user import User
-from app.models.water_log import WaterLog
-from app.schemas.water import WaterCreate, WaterUpdate, WaterOut
+from app.models.weight_log import WeightLog
+from app.schemas.weight import WeightCreate, WeightUpdate, WeightOut
 
-router = APIRouter(tags=["water"])
+router = APIRouter(tags=["weight"])
 
 _PROTECTED_FIELDS = {"pet_id", "id"}
 
 
-@router.get("/pets/{pet_id}/water", response_model=list[WaterOut])
-async def list_water(
+@router.get("/pets/{pet_id}/weight", response_model=list[WeightOut])
+async def list_weight(
     pet_id: int,
     date_from: datetime | None = Query(None),
     date_to: datetime | None = Query(None),
@@ -24,64 +24,64 @@ async def list_water(
     current_user: User = Depends(get_current_user),
 ):
     await get_pet_for_user(pet_id, current_user, db)
-    q = select(WaterLog).where(WaterLog.pet_id == pet_id)
+    q = select(WeightLog).where(WeightLog.pet_id == pet_id)
     if date_from:
-        q = q.where(WaterLog.datetime_ >= date_from)
+        q = q.where(WeightLog.datetime_ >= date_from)
     if date_to:
-        q = q.where(WaterLog.datetime_ <= date_to)
-    q = q.order_by(WaterLog.datetime_.desc())
+        q = q.where(WeightLog.datetime_ <= date_to)
+    q = q.order_by(WeightLog.datetime_.desc())
     result = await db.execute(q)
-    return [WaterOut.model_validate(w) for w in result.scalars().all()]
+    return [WeightOut.model_validate(w) for w in result.scalars().all()]
 
 
-@router.post("/pets/{pet_id}/water", response_model=WaterOut, status_code=status.HTTP_201_CREATED)
-async def create_water(
+@router.post("/pets/{pet_id}/weight", response_model=WeightOut, status_code=status.HTTP_201_CREATED)
+async def create_weight(
     pet_id: int,
-    data: WaterCreate,
+    data: WeightCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     await get_pet_for_user(pet_id, current_user, db)
-    log = WaterLog(
+    log = WeightLog(
         pet_id=pet_id,
         datetime_=data.datetime_ or datetime.now(timezone.utc),
-        amount_ml=data.amount_ml,
-        daily_goal_ml=data.daily_goal_ml,
+        weight_kg=data.weight_kg,
+        notes=data.notes,
     )
     db.add(log)
     await db.commit()
     await db.refresh(log)
-    return WaterOut.model_validate(log)
+    return WeightOut.model_validate(log)
 
 
-@router.put("/water/{water_id}", response_model=WaterOut)
-async def update_water(
-    water_id: int,
-    data: WaterUpdate,
+@router.put("/weight/{weight_id}", response_model=WeightOut)
+async def update_weight(
+    weight_id: int,
+    data: WeightUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    log = await db.get(WaterLog, water_id)
+    log = await db.get(WeightLog, weight_id)
     if not log:
-        raise HTTPException(status_code=404, detail="Water log not found")
+        raise HTTPException(status_code=404, detail="Weight log not found")
     await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
         if key not in _PROTECTED_FIELDS:
             setattr(log, key, value)
     await db.commit()
     await db.refresh(log)
-    return WaterOut.model_validate(log)
+    return WeightOut.model_validate(log)
 
 
-@router.delete("/water/{water_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_water(
-    water_id: int,
+@router.delete("/weight/{weight_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_weight(
+    weight_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    log = await db.get(WaterLog, water_id)
+    log = await db.get(WeightLog, weight_id)
     if not log:
-        raise HTTPException(status_code=404, detail="Water log not found")
+        raise HTTPException(status_code=404, detail="Weight log not found")
     await get_pet_for_user(log.pet_id, current_user, db)
     await db.delete(log)
     await db.commit()

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,13 +18,19 @@ _PROTECTED_FIELDS = {"pet_id", "id"}
 @router.get("/pets/{pet_id}/medications", response_model=list[MedicationOut])
 async def list_medications(
     pet_id: int,
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     await get_pet_for_user(pet_id, current_user, db)
-    result = await db.execute(
-        select(Medication).where(Medication.pet_id == pet_id).order_by(Medication.start_date.desc())
-    )
+    q = select(Medication).where(Medication.pet_id == pet_id)
+    if date_from:
+        q = q.where(Medication.start_date >= date_from)
+    if date_to:
+        q = q.where(Medication.start_date <= date_to)
+    q = q.order_by(Medication.start_date.desc())
+    result = await db.execute(q)
     return [MedicationOut.model_validate(m) for m in result.scalars().all()]
 
 

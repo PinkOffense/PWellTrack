@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, pets, feeding, water, vaccines, medications, events, symptoms, notifications
+from app.routers import auth, pets, feeding, water, vaccines, medications, events, symptoms, notifications, weight
 
 # Configure logging
 logging.basicConfig(
@@ -83,6 +83,7 @@ app.include_router(medications.router)
 app.include_router(events.router)
 app.include_router(symptoms.router)
 app.include_router(notifications.router)
+app.include_router(weight.router)
 
 
 @app.get("/")

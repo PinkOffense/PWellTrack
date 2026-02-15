@@ -12,6 +12,8 @@ export default {
     notes: 'Notas',
     confirmDelete: 'Tem a certeza que quer eliminar?',
     noData: 'Sem registos',
+    dateFrom: 'De',
+    dateTo: 'Até',
   },
   auth: {
     login: 'Entrar',
@@ -90,6 +92,7 @@ export default {
     noRecords: 'Sem medicação',
     addMedication: 'Adicionar Medicação',
     ongoing: 'Em curso',
+    timesOfDay: 'Horários',
   },
   events: {
     title: 'Eventos',
@@ -104,6 +107,14 @@ export default {
     vaccine: 'Vacina',
     grooming: 'Tosquia',
     other: 'Outro',
+    vet_visit: 'Consulta veterinária',
+    reminder: 'Lembrete',
+    noReminder: 'Sem lembrete',
+    reminder15min: '15 min antes',
+    reminder30min: '30 min antes',
+    reminder1h: '1 hora antes',
+    reminder2h: '2 horas antes',
+    reminder1day: '1 dia antes',
   },
   symptoms: {
     title: 'Sintomas',
@@ -129,6 +140,9 @@ export default {
     upcomingEvents: 'Próximos Eventos',
     activeMeds: 'Medicação Ativa',
     quickActions: 'Ações Rápidas',
+    trends: 'Últimos 7 Dias',
+    feedingTrend: 'Alimentação',
+    waterTrend: 'Água',
   },
   notifications: {
     medicationReminder: 'Medicação',
@@ -150,6 +164,13 @@ export default {
     deleteWarning: 'Esta ação é permanente. Todos os seus dados incluindo animais, registos de alimentação, medicação e eventos serão permanentemente eliminados.',
     typeDelete: 'Escreva DELETE para confirmar',
     confirmDelete: 'Eliminar Minha Conta',
+  },
+  weight: {
+    title: 'Peso',
+    logWeight: 'Registar Peso',
+    weightKg: 'Peso (kg)',
+    noRecords: 'Sem registos de peso',
+    weightHistory: 'Histórico de Peso',
   },
   settings: {
     title: 'Definições',

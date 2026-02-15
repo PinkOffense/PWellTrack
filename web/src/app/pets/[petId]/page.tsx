@@ -5,13 +5,16 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { petsApi, vaccinesApi } from '@/lib/api';
+import { petsApi, vaccinesApi, weightApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { Modal } from '@/components/Modal';
 import {
-  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2, Pencil,
+  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2, Pencil, Scale, Plus,
 } from 'lucide-react';
+import { FeedingChart } from '@/components/charts/FeedingChart';
+import { WaterChart } from '@/components/charts/WaterChart';
+import { WeightChart } from '@/components/charts/WeightChart';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const QUICK_ACTIONS = [
@@ -54,6 +57,14 @@ export default function PetDashboardPage() {
   const [editData, setEditData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  // Weight log state
+  const [showWeightForm, setShowWeightForm] = useState(false);
+  const [weightKg, setWeightKg] = useState('');
+  const [weightNotes, setWeightNotes] = useState('');
+  const [weightSaving, setWeightSaving] = useState(false);
+  const [weightError, setWeightError] = useState('');
+  const [weightKey, setWeightKey] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
@@ -127,6 +138,27 @@ export default function PetDashboardPage() {
       router.replace('/pets');
     } catch {
       setDeleting(false);
+    }
+  };
+
+  const handleWeightSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWeightError('');
+    if (!weightKg) { setWeightError(t('auth.fillAllFields')); return; }
+    setWeightSaving(true);
+    try {
+      await weightApi.create(petId, {
+        weight_kg: Number(weightKg),
+        notes: weightNotes.trim() || undefined,
+      });
+      setShowWeightForm(false);
+      setWeightKg('');
+      setWeightNotes('');
+      setWeightKey(k => k + 1);
+    } catch (err: any) {
+      setWeightError(err.message);
+    } finally {
+      setWeightSaving(false);
     }
   };
 
@@ -256,6 +288,42 @@ export default function PetDashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Trends */}
+        <h2 className="text-lg font-bold text-txt mb-3">{t('dashboard.trends')}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="card"><FeedingChart petId={petId} /></div>
+          <div className="card"><WaterChart petId={petId} /></div>
+        </div>
+
+        {/* Weight history */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-txt">{t('weight.weightHistory')}</h2>
+          <button onClick={() => setShowWeightForm(true)} className="btn-primary flex items-center gap-1.5 text-sm">
+            <Plus className="w-4 h-4" />
+            {t('weight.logWeight')}
+          </button>
+        </div>
+        <div className="card mb-6">
+          <WeightChart key={weightKey} petId={petId} />
+        </div>
+
+        <Modal open={showWeightForm} onClose={() => setShowWeightForm(false)} title={t('weight.logWeight')}>
+          <form onSubmit={handleWeightSubmit} className="space-y-4">
+            {weightError && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{weightError}</div>}
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('weight.weightKg')} *</label>
+              <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} className="input" placeholder="12.5" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-txt-secondary block mb-1">{t('common.notes')}</label>
+              <textarea value={weightNotes} onChange={e => setWeightNotes(e.target.value)} className="input" rows={2} />
+            </div>
+            <button type="submit" disabled={weightSaving} className="btn-primary w-full">
+              {weightSaving ? t('common.loading') : t('common.save')}
+            </button>
+          </form>
+        </Modal>
 
         {/* Upcoming events */}
         {dash && dash.upcoming_events.length > 0 && (
