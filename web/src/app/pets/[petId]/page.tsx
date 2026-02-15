@@ -174,12 +174,13 @@ export default function PetDashboardPage() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPhotoMenuOpen(false);
     try {
       const updated = await petsApi.uploadPhoto(petId, file);
       setPet(updated);
       toast(t('common.saved'));
-    } catch {
-      setEditError(t('common.error'));
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
     }
     e.target.value = '';
   };
@@ -190,8 +191,8 @@ export default function PetDashboardPage() {
       const updated = await petsApi.deletePhoto(petId);
       setPet(updated);
       toast(t('common.deleted'));
-    } catch {
-      setEditError(t('common.error'));
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
     }
   };
 
