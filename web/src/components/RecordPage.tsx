@@ -126,7 +126,7 @@ export function RecordPage<T extends { id: number }>({
             <p className="text-txt-secondary mb-4">{error}</p>
             <button onClick={load} className="btn-primary inline-flex items-center gap-2">
               <RefreshCw className="w-4 h-4" />
-              {t('common.error') === 'Error' ? 'Retry' : 'Tentar novamente'}
+              {t('common.retry')}
             </button>
           </div>
         </main>

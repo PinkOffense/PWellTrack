@@ -22,6 +22,8 @@ export default {
     requiredField: 'This field is required',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    retry: 'Retry',
+    fillAllFields: 'Please fill in all required fields',
   },
   auth: {
     login: 'Sign In',

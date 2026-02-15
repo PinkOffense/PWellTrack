@@ -16,7 +16,7 @@ function WaterForm({ petId, t, onSave, editingItem }: { petId: number; t: any; o
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!amount.trim()) { setError(t('auth.fillAllFields')); return; }
+    if (!amount.trim()) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = { amount_ml: Number(amount), daily_goal_ml: goal ? Number(goal) : undefined };

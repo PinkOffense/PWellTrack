@@ -19,7 +19,7 @@ function VaccineForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name.trim() || !dateAdmin) { setError(t('auth.fillAllFields')); return; }
+    if (!name.trim() || !dateAdmin) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {

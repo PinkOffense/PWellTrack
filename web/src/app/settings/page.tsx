@@ -129,7 +129,8 @@ export default function SettingsPage() {
       await authApi.deleteAccount();
       logout();
       router.replace('/login');
-    } catch {
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
       setDeleting(false);
     }
   };

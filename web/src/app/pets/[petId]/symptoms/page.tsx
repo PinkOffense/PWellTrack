@@ -20,7 +20,7 @@ function SymptomForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!type.trim()) { setError(t('auth.fillAllFields')); return; }
+    if (!type.trim()) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = { type: type.trim(), severity, notes: notes.trim() || undefined };

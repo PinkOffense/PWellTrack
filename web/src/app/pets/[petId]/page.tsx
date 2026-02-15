@@ -97,7 +97,8 @@ export default function PetDashboardPage() {
       setPet(p);
       setDash(d);
       setVaccines(v);
-    } catch {
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
       router.replace('/pets');
     } finally {
       setLoading(false);
@@ -131,7 +132,7 @@ export default function PetDashboardPage() {
     e.preventDefault();
     setEditError('');
     const finalSpecies = editData.species === 'other' ? editData.customSpecies.trim() : editData.species;
-    if (!editData.name.trim() || !finalSpecies) { setEditError(t('auth.fillAllFields')); return; }
+    if (!editData.name.trim() || !finalSpecies) { setEditError(t('common.fillAllFields')); return; }
     setEditSaving(true);
     try {
       const payload: Partial<PetCreate> = {
@@ -167,7 +168,8 @@ export default function PetDashboardPage() {
       await petsApi.delete(petId);
       toast(t('common.deleted'));
       router.replace('/pets');
-    } catch {
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
       setDeleting(false);
     }
   };
@@ -201,7 +203,7 @@ export default function PetDashboardPage() {
   const handleWeightSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setWeightError('');
-    if (!weightKg) { setWeightError(t('auth.fillAllFields')); return; }
+    if (!weightKg) { setWeightError(t('common.fillAllFields')); return; }
     setWeightSaving(true);
     try {
       await weightApi.create(petId, {

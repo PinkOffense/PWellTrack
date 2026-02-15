@@ -23,7 +23,7 @@ function EventForm({ petId, t, onSave, editingItem }: { petId: number; t: any; o
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!title.trim() || !dateTime) { setError(t('auth.fillAllFields')); return; }
+    if (!title.trim() || !dateTime) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {
