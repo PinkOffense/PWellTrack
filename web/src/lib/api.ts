@@ -44,7 +44,7 @@ export async function preparePhoto(file: File): Promise<string> {
   const { compressImage } = await import('./photos');
   const compressed = await compressImage(file);
 
-  // Try Supabase Storage first (browser → Supabase CDN, no Render involved)
+  // Try Supabase Storage first (browser → Supabase CDN, bypasses Render entirely)
   try {
     const { getSupabase } = await import('./supabase');
     const supabase = getSupabase();
@@ -56,18 +56,27 @@ export async function preparePhoto(file: File): Promise<string> {
 
       if (!error && data) {
         const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
-        if (urlData?.publicUrl) return urlData.publicUrl;
+        if (urlData?.publicUrl) {
+          console.info('[Storage] Photo uploaded to Supabase CDN:', urlData.publicUrl);
+          return urlData.publicUrl;
+        }
       }
-      console.warn('[Storage] Supabase upload failed, using base64 fallback:', error?.message);
+      console.warn('[Storage] Supabase upload failed:', error?.message);
+    } else {
+      console.info('[Storage] Supabase not configured, using base64');
     }
   } catch (e: any) {
-    console.warn('[Storage] Supabase not available, using base64 fallback:', e?.message);
+    console.warn('[Storage] Supabase error:', e?.message);
   }
 
   // Fallback: base64 data URI (sent inside JSON body to backend)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      const result = reader.result as string;
+      console.info('[Storage] Using base64 fallback, size:', Math.round(result.length / 1024), 'KB');
+      resolve(result);
+    };
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(compressed);
   });
@@ -75,42 +84,71 @@ export async function preparePhoto(file: File): Promise<string> {
 
 // ── HTTP client ──
 const REQUEST_TIMEOUT_MS = 60_000;
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [2_000, 5_000];
+
+function isNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError && /network|fetch|failed/i.test((e as TypeError).message)) return true;
+  if (e instanceof DOMException && e.name === 'NetworkError') return true;
+  return false;
+}
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const url = `${API_BASE}${path}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenStorage.get();
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  const jsonBody = body ? JSON.stringify(body) : undefined;
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: ctrl.signal,
-      mode: 'cors',
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
-      throw new Error(err.detail || `Error ${res.status}`);
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = RETRY_DELAYS[attempt - 1] ?? 5_000;
+      console.warn(`[API] Retry ${attempt}/${MAX_RETRIES} for ${method} ${path} after ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
     }
 
-    if (res.status === 204) return undefined as unknown as T;
-    return res.json();
-  } catch (e: any) {
-    if (e instanceof DOMException && e.name === 'AbortError') {
-      throw new Error('Request timed out');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: jsonBody,
+        signal: ctrl.signal,
+        mode: 'cors',
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+
+      if (res.status === 204) return undefined as unknown as T;
+      return res.json();
+    } catch (e: any) {
+      lastError = e;
+      clearTimeout(timer);
+
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+
+      // Retry on network errors (Render cold start can drop connections)
+      if (isNetworkError(e) && attempt < MAX_RETRIES) {
+        console.warn(`[API] Network error on ${method} ${path}:`, e?.message);
+        continue;
+      }
+
+      console.error(`[API] ${method} ${path} failed:`, e?.message || e, { url, bodySize: jsonBody?.length ?? 0 });
+      throw e;
+    } finally {
+      clearTimeout(timer);
     }
-    // Log detailed error info for debugging
-    console.error(`[API] ${method} ${path} failed:`, e?.message || e, { url, bodySize: body ? JSON.stringify(body).length : 0 });
-    throw e;
-  } finally {
-    clearTimeout(timer);
   }
+
+  throw lastError;
 }
 
 function buildListPath(base: string, dateFrom?: string, dateTo?: string): string {
@@ -222,8 +260,8 @@ export const weightApi = {
 export async function checkBackend(): Promise<boolean> {
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2000);
-    await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    await fetch(`${API_BASE}/health`, { signal: ctrl.signal, mode: 'cors' });
     clearTimeout(timer);
     return true;
   } catch {
