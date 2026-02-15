@@ -14,6 +14,14 @@ export default {
     noData: 'Sem registos',
     dateFrom: 'De',
     dateTo: 'Até',
+    saved: 'Guardado com sucesso',
+    deleted: 'Eliminado com sucesso',
+    confirm: 'Confirmar',
+    deleteTitle: 'Eliminar Registo',
+    deleteMessage: 'Esta ação não pode ser desfeita. Tem a certeza?',
+    requiredField: 'Este campo é obrigatório',
+    showPassword: 'Mostrar palavra-passe',
+    hidePassword: 'Ocultar palavra-passe',
   },
   auth: {
     login: 'Entrar',
@@ -182,5 +190,8 @@ export default {
     portuguese: 'Português',
     logout: 'Sair',
     logoutConfirm: 'Tem a certeza que quer sair?',
+    logoutTitle: 'Sair',
+    notifications: 'Notificações',
+    noNotifications: 'Sem notificações',
   },
 } as const;

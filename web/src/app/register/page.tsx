@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { User, Mail, Lock, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const FarmScene = dynamic(() => import('@/components/FarmScene'), { ssr: false });
@@ -31,6 +31,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +106,12 @@ export default function RegisterPage() {
 
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-300/80 group-focus-within:text-[#B4A5D6] transition-colors duration-300" />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth.password')} className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70" autoComplete="new-password" />
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder={t('auth.password')} className="w-full pl-12 pr-11 py-3.5 rounded-2xl border border-gray-100/80 bg-[#faf8ff]/60 focus:border-[#C9B8E8] focus:bg-white focus:ring-4 focus:ring-[#f0ecff]/60 outline-none transition-all duration-300 text-sm placeholder:text-gray-300/70" autoComplete="new-password" />
+              <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300/80 hover:text-[#B4A5D6] transition-colors duration-300" aria-label={showPassword ? t('common.hidePassword') : t('common.showPassword')}>
+                {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+              </button>
             </div>
+            <p className="text-[11px] text-gray-300/80 -mt-2 ml-1">{t('auth.passwordMin')}</p>
 
             <button
               type="submit"
@@ -126,13 +132,15 @@ export default function RegisterPage() {
               </div>
               <button
                 type="button"
+                disabled={googleLoading}
                 onClick={async () => {
-                  try { await loginWithGoogle(); } catch (err: any) { setError(err.message); }
+                  setGoogleLoading(true);
+                  try { await loginWithGoogle(); } catch (err: any) { setError(err.message); } finally { setGoogleLoading(false); }
                 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl border border-gray-100/80 bg-white/60 hover:bg-white hover:border-gray-200/80 hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.06)] transition-all duration-300 font-medium text-sm text-gray-500 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl border border-gray-100/80 bg-white/60 hover:bg-white hover:border-gray-200/80 hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.06)] transition-all duration-300 font-medium text-sm text-gray-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <GoogleIcon />
-                {t('auth.googleSignIn')}
+                {googleLoading ? <div className="w-5 h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" /> : <GoogleIcon />}
+                {googleLoading ? t('common.loading') : t('auth.googleSignIn')}
               </button>
             </>
           )}

@@ -15,6 +15,8 @@ import {
 import { FeedingChart } from '@/components/charts/FeedingChart';
 import { WaterChart } from '@/components/charts/WaterChart';
 import { WeightChart } from '@/components/charts/WeightChart';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const QUICK_ACTIONS = [
@@ -45,6 +47,9 @@ export default function PetDashboardPage() {
   const router = useRouter();
   const params = useParams();
   const petId = Number(params.petId);
+
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const [pet, setPet] = useState<Pet | null>(null);
   const [dash, setDash] = useState<PetDashboard | null>(null);
@@ -139,6 +144,7 @@ export default function PetDashboardPage() {
       const updated = await petsApi.update(petId, payload);
       setPet(updated);
       setShowEdit(false);
+      toast(t('common.saved'));
     } catch (err: any) {
       setEditError(err.message || t('common.error'));
     } finally {
@@ -147,10 +153,18 @@ export default function PetDashboardPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(t('common.confirmDelete'))) return;
+    const ok = await confirm({
+      title: t('common.deleteTitle'),
+      message: t('common.deleteMessage'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      danger: true,
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       await petsApi.delete(petId);
+      toast(t('common.deleted'));
       router.replace('/pets');
     } catch {
       setDeleting(false);
@@ -163,6 +177,7 @@ export default function PetDashboardPage() {
     try {
       const updated = await petsApi.uploadPhoto(petId, file);
       setPet(updated);
+      toast(t('common.saved'));
     } catch {
       setEditError(t('common.error'));
     }
@@ -174,6 +189,7 @@ export default function PetDashboardPage() {
     try {
       const updated = await petsApi.deletePhoto(petId);
       setPet(updated);
+      toast(t('common.deleted'));
     } catch {
       setEditError(t('common.error'));
     }
@@ -193,6 +209,7 @@ export default function PetDashboardPage() {
       setWeightKg('');
       setWeightNotes('');
       setWeightKey(k => k + 1);
+      toast(t('common.saved'));
     } catch (err: any) {
       setWeightError(err.message);
     } finally {
@@ -382,7 +399,7 @@ export default function PetDashboardPage() {
             {weightError && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{weightError}</div>}
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1">{t('weight.weightKg')} *</label>
-              <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} className="input" placeholder="12.5" />
+              <input type="number" min="0" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} className="input" placeholder="12.5" />
             </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1">{t('common.notes')}</label>
@@ -472,11 +489,11 @@ export default function PetDashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
-                <input type="number" step="0.1" value={editData.weight_kg} onChange={e => setEditData(d => ({ ...d, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+                <input type="number" min="0" step="0.1" value={editData.weight_kg} onChange={e => setEditData(d => ({ ...d, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
               </div>
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.dob')}</label>
-                <input type="date" value={editData.date_of_birth} onChange={e => setEditData(d => ({ ...d, date_of_birth: e.target.value }))} className="input" />
+                <input type="date" max={new Date().toISOString().slice(0, 10)} value={editData.date_of_birth} onChange={e => setEditData(d => ({ ...d, date_of_birth: e.target.value }))} className="input" />
               </div>
             </div>
             <div>

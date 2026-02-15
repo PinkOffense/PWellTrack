@@ -68,7 +68,7 @@ function EventForm({ petId, t, onSave, editingItem }: { petId: number; t: any; o
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm font-medium text-txt-secondary block mb-1">{t('events.duration')}</label>
-          <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="input" placeholder="30" />
+          <input type="number" min="1" step="1" value={duration} onChange={e => setDuration(e.target.value)} className="input" placeholder="30" />
         </div>
         <div>
           <label className="text-sm font-medium text-txt-secondary block mb-1">{t('events.location')}</label>

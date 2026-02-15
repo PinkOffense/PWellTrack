@@ -32,11 +32,11 @@ function WaterForm({ petId, t, onSave, editingItem }: { petId: number; t: any; o
       {error && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('water.amountMl')} *</label>
-        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="input" placeholder="250" />
+        <input type="number" min="0" step="1" value={amount} onChange={e => setAmount(e.target.value)} className="input" placeholder="250" />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('water.dailyGoal')}</label>
-        <input type="number" value={goal} onChange={e => setGoal(e.target.value)} className="input" placeholder="800" />
+        <input type="number" min="0" step="1" value={goal} onChange={e => setGoal(e.target.value)} className="input" placeholder="800" />
       </div>
       <button type="submit" disabled={saving} className="btn-primary w-full">
         {saving ? t('common.loading') : t('common.save')}

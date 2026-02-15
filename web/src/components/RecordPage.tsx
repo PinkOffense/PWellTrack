@@ -9,6 +9,8 @@ import { Navbar } from '@/components/Navbar';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { ArrowLeft, Plus, Pencil, Trash2, X, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 import type { Pet } from '@/lib/types';
 
 interface Props<T> {
@@ -37,6 +39,8 @@ export function RecordPage<T extends { id: number }>({
   const router = useRouter();
   const params = useParams();
   const petId = Number(params.petId);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const [pet, setPet] = useState<Pet | null>(null);
   const [items, setItems] = useState<T[]>([]);
@@ -71,10 +75,18 @@ export function RecordPage<T extends { id: number }>({
   useEffect(() => { if (user && petId) load(); }, [user, petId, dateFrom, dateTo]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm(t('common.confirmDelete'))) return;
+    const ok = await confirm({
+      title: t('common.deleteTitle'),
+      message: t('common.deleteMessage'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteFn(id);
       setItems(prev => prev.filter(i => i.id !== id));
+      toast(t('common.deleted'));
     } catch (err: any) {
       setError(err.message || t('common.error'));
     }
@@ -188,7 +200,7 @@ export function RecordPage<T extends { id: number }>({
           {renderForm({
             petId,
             t,
-            onSave: () => { closeForm(); load(); },
+            onSave: () => { closeForm(); load(); toast(t('common.saved')); },
             editingItem: editingItem ?? undefined,
           })}
         </Modal>

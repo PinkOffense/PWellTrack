@@ -61,7 +61,7 @@ function MedicationForm({ petId, t, onSave, editingItem }: { petId: number; t: a
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('medications.frequency')} *</label>
-        <input type="number" value={frequency} onChange={e => setFrequency(e.target.value)} className="input" placeholder="2" />
+        <input type="number" min="1" step="1" value={frequency} onChange={e => setFrequency(e.target.value)} className="input" placeholder="2" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

@@ -7,12 +7,16 @@ import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { Modal } from '@/components/Modal';
-import { Globe, LogOut, Camera, Trash2, Lock, AlertTriangle, Check } from 'lucide-react';
+import { Globe, LogOut, Camera, Trash2, Lock, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import { useConfirm } from '@/components/ConfirmDialog';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { user, loading, logout, refreshUser } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   // Photo
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,8 +45,14 @@ export default function SettingsPage() {
     localStorage.setItem('pwelltrack_lang', lang);
   };
 
-  const handleLogout = () => {
-    if (confirm(t('settings.logoutConfirm'))) {
+  const handleLogout = async () => {
+    const ok = await confirm({
+      title: t('settings.logoutTitle'),
+      message: t('settings.logoutConfirm'),
+      confirmLabel: t('settings.logout'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (ok) {
       logout();
       router.replace('/login');
     }
@@ -56,6 +66,7 @@ export default function SettingsPage() {
     try {
       await authApi.uploadPhoto(file);
       refreshUser?.();
+      toast(t('common.saved'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
     }
@@ -67,6 +78,7 @@ export default function SettingsPage() {
     try {
       await authApi.deletePhoto();
       refreshUser?.();
+      toast(t('common.deleted'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
     }
@@ -103,8 +115,13 @@ export default function SettingsPage() {
   };
 
   // Delete account handler
+  // Password visibility
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+
   const handleDeleteAccount = async () => {
-    if (deleteText !== 'DELETE') return;
+    if (deleteText.toUpperCase() !== 'DELETE') return;
     setDeleting(true);
     try {
       await authApi.deleteAccount();
@@ -210,15 +227,30 @@ export default function SettingsPage() {
               )}
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('profile.currentPassword')}</label>
-                <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="input" />
+                <div className="relative">
+                  <input type={showCurrentPw ? 'text' : 'password'} value={currentPw} onChange={e => setCurrentPw(e.target.value)} className="input pr-10" />
+                  <button type="button" onClick={() => setShowCurrentPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-muted hover:text-primary transition-colors" aria-label={showCurrentPw ? t('common.hidePassword') : t('common.showPassword')}>
+                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('profile.newPassword')}</label>
-                <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} className="input" />
+                <div className="relative">
+                  <input type={showNewPw ? 'text' : 'password'} value={newPw} onChange={e => setNewPw(e.target.value)} className="input pr-10" />
+                  <button type="button" onClick={() => setShowNewPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-muted hover:text-primary transition-colors" aria-label={showNewPw ? t('common.hidePassword') : t('common.showPassword')}>
+                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('profile.confirmPassword')}</label>
-                <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="input" />
+                <div className="relative">
+                  <input type={showConfirmPw ? 'text' : 'password'} value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className="input pr-10" />
+                  <button type="button" onClick={() => setShowConfirmPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-muted hover:text-primary transition-colors" aria-label={showConfirmPw ? t('common.hidePassword') : t('common.showPassword')}>
+                    {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => { setShowPasswordForm(false); setPwError(''); }} className="btn-secondary flex-1">
@@ -296,7 +328,7 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleteText !== 'DELETE' || deleting}
+                disabled={deleteText.toUpperCase() !== 'DELETE' || deleting}
                 className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white transition-all bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {deleting ? t('common.loading') : t('profile.confirmDelete')}

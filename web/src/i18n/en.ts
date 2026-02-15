@@ -14,6 +14,14 @@ export default {
     noData: 'No records yet',
     dateFrom: 'From',
     dateTo: 'To',
+    saved: 'Saved successfully',
+    deleted: 'Deleted successfully',
+    confirm: 'Confirm',
+    deleteTitle: 'Delete Record',
+    deleteMessage: 'This action cannot be undone. Are you sure?',
+    requiredField: 'This field is required',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
   },
   auth: {
     login: 'Sign In',
@@ -182,5 +190,8 @@ export default {
     portuguese: 'Portuguese',
     logout: 'Sign Out',
     logoutConfirm: 'Are you sure you want to sign out?',
+    logoutTitle: 'Sign Out',
+    notifications: 'Notifications',
+    noNotifications: 'No notifications',
   },
 } as const;
