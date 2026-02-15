@@ -53,6 +53,7 @@ export default {
     noPets: 'Sem animais. Adicione o primeiro!',
     changePhoto: 'Alterar Foto',
     removePhoto: 'Remover Foto',
+    addPhoto: 'Adicionar Foto',
   },
   feeding: {
     title: 'Alimentação',

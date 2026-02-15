@@ -54,6 +54,9 @@ export default function PetsPage() {
   const [formData, setFormData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [newPetPhoto, setNewPetPhoto] = useState<File | null>(null);
+  const [newPetPhotoPreview, setNewPetPhotoPreview] = useState<string | null>(null);
+  const newPetPhotoRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
   const [photoMenuId, setPhotoMenuId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,7 +108,7 @@ export default function PetsPage() {
     if (!formData.name.trim()) { setFormError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await petsApi.create({
+      const created = await petsApi.create({
         name: formData.name.trim(),
         species: formData.species,
         breed: formData.breed.trim() || undefined,
@@ -113,8 +116,13 @@ export default function PetsPage() {
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
       });
+      if (newPetPhoto) {
+        try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
+      }
       setShowForm(false);
       setFormData({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
+      setNewPetPhoto(null);
+      setNewPetPhotoPreview(null);
       loadPets();
     } catch (err: any) {
       setFormError(err.message);
@@ -329,6 +337,41 @@ export default function PetsPage() {
         <Modal open={showForm} onClose={() => setShowForm(false)} title={t('pets.addPet')}>
           <form onSubmit={handleCreate} className="space-y-4">
             {formError && <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">{formError}</div>}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => newPetPhotoRef.current?.click()}
+                className="relative w-24 h-24 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 hover:border-primary/40 flex items-center justify-center overflow-hidden transition-all group"
+              >
+                {newPetPhotoPreview ? (
+                  <>
+                    <img src={newPetPhotoPreview} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                      <Camera className="w-5 h-5 text-white drop-shadow" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <Camera className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                    <span className="text-[10px] text-txt-muted">{t('pets.addPhoto')}</span>
+                  </div>
+                )}
+              </button>
+              <input
+                ref={newPetPhotoRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setNewPetPhoto(file);
+                    setNewPetPhotoPreview(URL.createObjectURL(file));
+                  }
+                  e.target.value = '';
+                }}
+              />
+            </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.name')} *</label>
               <input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} className="input" />

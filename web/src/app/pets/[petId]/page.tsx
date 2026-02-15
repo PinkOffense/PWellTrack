@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { Modal } from '@/components/Modal';
 import {
-  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2, Pencil, Scale, Plus,
+  ArrowLeft, Utensils, Droplets, Syringe, Pill, Calendar, Activity, Trash2, Pencil, Plus, Camera,
 } from 'lucide-react';
 import { FeedingChart } from '@/components/charts/FeedingChart';
 import { WaterChart } from '@/components/charts/WaterChart';
@@ -65,6 +65,17 @@ export default function PetDashboardPage() {
   const [weightSaving, setWeightSaving] = useState(false);
   const [weightError, setWeightError] = useState('');
   const [weightKey, setWeightKey] = useState(0);
+
+  // Photo state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!photoMenuOpen) return;
+    const close = () => setPhotoMenuOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [photoMenuOpen]);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
@@ -141,6 +152,28 @@ export default function PetDashboardPage() {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const updated = await petsApi.uploadPhoto(petId, file);
+      setPet(updated);
+    } catch {
+      setEditError(t('common.error'));
+    }
+    e.target.value = '';
+  };
+
+  const handlePhotoRemove = async () => {
+    setPhotoMenuOpen(false);
+    try {
+      const updated = await petsApi.deletePhoto(petId);
+      setPet(updated);
+    } catch {
+      setEditError(t('common.error'));
+    }
+  };
+
   const handleWeightSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setWeightError('');
@@ -198,7 +231,38 @@ export default function PetDashboardPage() {
         </button>
 
         <div className="card flex items-center gap-4 mb-6">
-          <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
+          <div
+            className="relative shrink-0 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setPhotoMenuOpen(v => !v); }}
+          >
+            <PetAvatar name={pet.name} species={pet.species} photoUrl={pet.photo_url} size="lg" />
+            <div className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200">
+              <Camera className="w-5 h-5 text-white drop-shadow" />
+            </div>
+            {photoMenuOpen && (
+              <div
+                className="absolute top-full left-0 mt-1.5 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 min-w-[150px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => { setPhotoMenuOpen(false); fileInputRef.current?.click(); }}
+                  className="w-full px-3.5 py-2 text-left text-sm text-txt hover:bg-primary/5 flex items-center gap-2.5 transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5 text-primary" />
+                  {t('pets.changePhoto')}
+                </button>
+                {pet.photo_url && (
+                  <button
+                    onClick={handlePhotoRemove}
+                    className="w-full px-3.5 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t('pets.removePhoto')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-txt">{pet.name}</h1>
             <p className="text-txt-secondary capitalize">
@@ -429,6 +493,7 @@ export default function PetDashboardPage() {
           </form>
         </Modal>
       </main>
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
     </>
   );
 }
