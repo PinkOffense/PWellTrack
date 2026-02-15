@@ -33,8 +33,18 @@ export const tokenStorage = {
   },
 };
 
+// ── Helpers ──
+function readAsDataUri(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── HTTP client ──
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -88,31 +98,8 @@ export const authApi = {
   google: (data: { email: string; name: string; supabase_token: string }) =>
     request<TokenResponse>('POST', '/auth/google', data),
   uploadPhoto: async (file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    const token = tokenStorage.get();
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30_000);
-    try {
-      const res = await fetch(`${API_BASE}/auth/photo`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-        signal: ctrl.signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: `Upload failed (${res.status})` }));
-        throw new Error(err.detail || `Upload failed (${res.status})`);
-      }
-      return res.json() as Promise<User>;
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') {
-        throw new Error('Upload timed out');
-      }
-      throw e;
-    } finally {
-      clearTimeout(timer);
-    }
+    const dataUri = await readAsDataUri(file);
+    return request<User>('PUT', '/auth/photo', { photo_data: dataUri });
   },
   deletePhoto: () => request<User>('DELETE', '/auth/photo'),
   changePassword: (data: { current_password: string; new_password: string }) =>
@@ -129,31 +116,8 @@ export const petsApi = {
   delete: (id: number) => request<void>('DELETE', `/pets/${id}`),
   today: (id: number) => request<PetDashboard>('GET', `/pets/${id}/today`),
   uploadPhoto: async (id: number, file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    const token = tokenStorage.get();
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30_000);
-    try {
-      const res = await fetch(`${API_BASE}/pets/${id}/photo`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-        signal: ctrl.signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: `Upload failed (${res.status})` }));
-        throw new Error(err.detail || `Upload failed (${res.status})`);
-      }
-      return res.json() as Promise<Pet>;
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') {
-        throw new Error('Upload timed out');
-      }
-      throw e;
-    } finally {
-      clearTimeout(timer);
-    }
+    const dataUri = await readAsDataUri(file);
+    return request<Pet>('PUT', `/pets/${id}`, { photo_url: dataUri });
   },
   deletePhoto: (id: number) => request<Pet>('DELETE', `/pets/${id}/photo`),
 };

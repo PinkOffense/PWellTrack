@@ -13,6 +13,12 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest, PasswordChange
 
+from pydantic import BaseModel as _BaseModel
+
+
+class _PhotoData(_BaseModel):
+    photo_data: str
+
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -140,6 +146,23 @@ async def upload_profile_photo(
     b64 = base64.b64encode(contents).decode()
     ext = file.filename.split(".")[-1] if file.filename else "jpg"
     current_user.photo_url = f"data:image/{ext};base64,{b64}"
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
+@router.put("/photo", response_model=UserOut)
+async def update_photo_json(
+    data: _PhotoData,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Accept photo as base64 data URI in a JSON body (avoids multipart issues)."""
+    if not data.photo_data.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Invalid photo data")
+    if len(data.photo_data) > 7_000_000:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
+    current_user.photo_url = data.photo_data
     await db.commit()
     await db.refresh(current_user)
     return UserOut.model_validate(current_user)
