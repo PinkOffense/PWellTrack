@@ -54,7 +54,7 @@ export default function PetDashboardPage() {
 
   // Edit pet state
   const [showEdit, setShowEdit] = useState(false);
-  const [editData, setEditData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
+  const [editData, setEditData] = useState({ name: '', species: 'dog', customSpecies: '', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -103,11 +103,15 @@ export default function PetDashboardPage() {
     loadData();
   }, [user, petId]);
 
+  const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
+
   const openEdit = () => {
     if (!pet) return;
+    const isKnown = KNOWN_SPECIES.includes(pet.species);
     setEditData({
       name: pet.name,
-      species: pet.species,
+      species: isKnown ? pet.species : 'other',
+      customSpecies: isKnown ? '' : pet.species,
       breed: pet.breed || '',
       weight_kg: pet.weight_kg ? String(pet.weight_kg) : '',
       date_of_birth: pet.date_of_birth || '',
@@ -120,12 +124,13 @@ export default function PetDashboardPage() {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditError('');
-    if (!editData.name.trim()) { setEditError(t('auth.fillAllFields')); return; }
+    const finalSpecies = editData.species === 'other' ? editData.customSpecies.trim() : editData.species;
+    if (!editData.name.trim() || !finalSpecies) { setEditError(t('auth.fillAllFields')); return; }
     setEditSaving(true);
     try {
       const payload: Partial<PetCreate> = {
         name: editData.name.trim(),
-        species: editData.species,
+        species: finalSpecies,
         breed: editData.breed.trim() || undefined,
         weight_kg: editData.weight_kg ? Number(editData.weight_kg) : undefined,
         date_of_birth: editData.date_of_birth || undefined,
@@ -266,7 +271,7 @@ export default function PetDashboardPage() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-txt">{pet.name}</h1>
             <p className="text-txt-secondary capitalize">
-              {t(`pets.${pet.species}` as any)}
+              {KNOWN_SPECIES.includes(pet.species) ? t(`pets.${pet.species}` as any) : pet.species}
               {pet.breed && ` · ${pet.breed}`}
               {pet.sex && ` · ${t(`pets.${pet.sex}` as any)}`}
               {pet.weight_kg && ` · ${pet.weight_kg} kg`}
@@ -436,13 +441,13 @@ export default function PetDashboardPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.species')} *</label>
-              <div className="flex gap-2">
-                {['dog', 'cat', 'exotic'].map(s => (
+              <div className="flex gap-2 flex-wrap">
+                {['dog', 'cat', 'exotic', 'other'].map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setEditData(d => ({ ...d, species: s }))}
-                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                    className={`flex-1 min-w-[70px] py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
                       ${editData.species === s
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
@@ -451,6 +456,14 @@ export default function PetDashboardPage() {
                   </button>
                 ))}
               </div>
+              {editData.species === 'other' && (
+                <input
+                  value={editData.customSpecies}
+                  onChange={e => setEditData(d => ({ ...d, customSpecies: e.target.value }))}
+                  className="input mt-2"
+                  placeholder={t('pets.specifySpecies')}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>

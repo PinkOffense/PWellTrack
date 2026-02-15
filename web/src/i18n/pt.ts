@@ -49,6 +49,8 @@ export default {
     dog: 'Cão',
     cat: 'Gato',
     exotic: 'Exótico',
+    other: 'Outro',
+    specifySpecies: 'Especifique a espécie (ex: Cabra, Cavalo...)',
     dashboard: 'Painel',
     noPets: 'Sem animais. Adicione o primeiro!',
     changePhoto: 'Alterar Foto',

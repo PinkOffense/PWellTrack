@@ -49,6 +49,8 @@ export default {
     dog: 'Dog',
     cat: 'Cat',
     exotic: 'Exotic',
+    other: 'Other',
+    specifySpecies: 'Specify species (e.g. Goat, Horse...)',
     dashboard: 'Dashboard',
     noPets: 'No pets yet. Add your first pet!',
     changePhoto: 'Change Photo',

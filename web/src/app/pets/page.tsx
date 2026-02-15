@@ -12,6 +12,8 @@ import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
+const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
+
 function getFeedingStatus(d: PetDashboard | null) {
   if (!d) return null;
   const { total_actual_grams: actual, total_planned_grams: planned, entries_count } = d.feeding;
@@ -51,7 +53,7 @@ export default function PetsPage() {
   const [vaccineData, setVaccineData] = useState<Record<number, Vaccine[]>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
+  const [formData, setFormData] = useState({ name: '', species: 'dog', customSpecies: '', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [newPetPhoto, setNewPetPhoto] = useState<File | null>(null);
@@ -105,12 +107,13 @@ export default function PetsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
-    if (!formData.name.trim()) { setFormError(t('auth.fillAllFields')); return; }
+    const finalSpecies = formData.species === 'other' ? formData.customSpecies.trim() : formData.species;
+    if (!formData.name.trim() || !finalSpecies) { setFormError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
       const created = await petsApi.create({
         name: formData.name.trim(),
-        species: formData.species,
+        species: finalSpecies,
         breed: formData.breed.trim() || undefined,
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
         date_of_birth: formData.date_of_birth || undefined,
@@ -120,7 +123,7 @@ export default function PetsPage() {
         try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
       }
       setShowForm(false);
-      setFormData({ name: '', species: 'dog', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
+      setFormData({ name: '', species: 'dog', customSpecies: '', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
       setNewPetPhoto(null);
       setNewPetPhotoPreview(null);
       loadPets();
@@ -260,7 +263,7 @@ export default function PetsPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-txt truncate">{pet.name}</h3>
                       <p className="text-sm text-txt-secondary capitalize">
-                        {t(`pets.${pet.species}` as any)}
+                        {KNOWN_SPECIES.includes(pet.species) ? t(`pets.${pet.species}` as any) : pet.species}
                         {pet.breed && ` · ${pet.breed}`}
                         {pet.weight_kg && ` · ${pet.weight_kg}kg`}
                       </p>
@@ -378,13 +381,13 @@ export default function PetsPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.species')} *</label>
-              <div className="flex gap-2">
-                {['dog', 'cat', 'exotic'].map(s => (
+              <div className="flex gap-2 flex-wrap">
+                {['dog', 'cat', 'exotic', 'other'].map(s => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, species: s }))}
-                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                    className={`flex-1 min-w-[70px] py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
                       ${formData.species === s
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
@@ -393,6 +396,14 @@ export default function PetsPage() {
                   </button>
                 ))}
               </div>
+              {formData.species === 'other' && (
+                <input
+                  value={formData.customSpecies}
+                  onChange={e => setFormData(f => ({ ...f, customSpecies: e.target.value }))}
+                  className="input mt-2"
+                  placeholder={t('pets.specifySpecies')}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>
