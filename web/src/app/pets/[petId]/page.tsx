@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { petsApi, vaccinesApi, weightApi } from '@/lib/api';
+import { petsApi, vaccinesApi, weightApi, preparePhoto } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { Modal } from '@/components/Modal';
@@ -17,7 +17,6 @@ import { WaterChart } from '@/components/charts/WaterChart';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { compressImage } from '@/lib/photos';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const QUICK_ACTIONS = [
@@ -179,8 +178,8 @@ export default function PetDashboardPage() {
     if (!file) return;
     setPhotoMenuOpen(false);
     try {
-      const compressed = await compressImage(file);
-      const updated = await petsApi.uploadPhoto(petId, compressed);
+      const photoUrl = await preparePhoto(file);
+      const updated = await petsApi.update(petId, { photo_url: photoUrl });
       setPet(updated);
       toast(t('common.saved'));
     } catch (err: any) {

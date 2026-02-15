@@ -35,6 +35,7 @@ export interface PetCreate {
   date_of_birth?: string;
   sex?: string;
   weight_kg?: number;
+  photo_url?: string;
   notes?: string;
 }
 

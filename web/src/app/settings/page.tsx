@@ -10,7 +10,7 @@ import { Modal } from '@/components/Modal';
 import { Globe, LogOut, Camera, Trash2, Lock, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { resolvePhotoUrl, compressImage } from '@/lib/photos';
+import { resolvePhotoUrl } from '@/lib/photos';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -65,8 +65,7 @@ export default function SettingsPage() {
     if (!file) return;
     setPhotoError('');
     try {
-      const compressed = await compressImage(file);
-      await authApi.uploadPhoto(compressed);
+      await authApi.uploadPhoto(file);
       refreshUser?.();
       toast(t('common.saved'));
     } catch (err: any) {

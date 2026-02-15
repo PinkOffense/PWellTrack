@@ -34,19 +34,50 @@ export const tokenStorage = {
 };
 
 // ── Helpers ──
-function readAsDataUri(file: File): Promise<string> {
+
+/**
+ * Compress image and upload to Supabase Storage (CDN).
+ * Falls back to base64 data URI if Supabase is not configured.
+ * Returns a URL string (either https://...supabase... or data:image/...).
+ */
+export async function preparePhoto(file: File): Promise<string> {
+  const { compressImage } = await import('./photos');
+  const compressed = await compressImage(file);
+
+  // Try Supabase Storage first (browser → Supabase CDN, no Render involved)
+  try {
+    const { getSupabase } = await import('./supabase');
+    const supabase = getSupabase();
+    if (supabase) {
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { data, error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
+
+      if (!error && data) {
+        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
+        if (urlData?.publicUrl) return urlData.publicUrl;
+      }
+      console.warn('[Storage] Supabase upload failed, using base64 fallback:', error?.message);
+    }
+  } catch (e: any) {
+    console.warn('[Storage] Supabase not available, using base64 fallback:', e?.message);
+  }
+
+  // Fallback: base64 data URI (sent inside JSON body to backend)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(compressed);
   });
 }
 
 // ── HTTP client ──
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const url = `${API_BASE}${path}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = tokenStorage.get();
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -55,11 +86,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(url, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
       signal: ctrl.signal,
+      mode: 'cors',
     });
 
     if (!res.ok) {
@@ -69,10 +101,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
     if (res.status === 204) return undefined as unknown as T;
     return res.json();
-  } catch (e) {
+  } catch (e: any) {
     if (e instanceof DOMException && e.name === 'AbortError') {
       throw new Error('Request timed out');
     }
+    // Log detailed error info for debugging
+    console.error(`[API] ${method} ${path} failed:`, e?.message || e, { url, bodySize: body ? JSON.stringify(body).length : 0 });
     throw e;
   } finally {
     clearTimeout(timer);
@@ -97,9 +131,10 @@ export const authApi = {
   refresh: () => request<TokenResponse>('POST', '/auth/refresh'),
   google: (data: { email: string; name: string; supabase_token: string }) =>
     request<TokenResponse>('POST', '/auth/google', data),
+  /** Upload user photo — uploads to Supabase Storage or falls back to base64 */
   uploadPhoto: async (file: File) => {
-    const dataUri = await readAsDataUri(file);
-    return request<User>('PUT', '/auth/photo', { photo_data: dataUri });
+    const photoUrl = await preparePhoto(file);
+    return request<User>('PUT', '/auth/photo', { photo_data: photoUrl });
   },
   deletePhoto: () => request<User>('DELETE', '/auth/photo'),
   changePassword: (data: { current_password: string; new_password: string }) =>
@@ -110,15 +145,13 @@ export const authApi = {
 // ── Pets API ──
 export const petsApi = {
   list: () => request<Pet[]>('GET', '/pets/'),
+  /** Create pet — pass photo_url as data URI to include photo in creation */
   create: (data: PetCreate) => request<Pet>('POST', '/pets/', data),
   get: (id: number) => request<Pet>('GET', `/pets/${id}`),
+  /** Update pet — pass photo_url as data URI to change photo */
   update: (id: number, data: Partial<PetCreate>) => request<Pet>('PUT', `/pets/${id}`, data),
   delete: (id: number) => request<void>('DELETE', `/pets/${id}`),
   today: (id: number) => request<PetDashboard>('GET', `/pets/${id}/today`),
-  uploadPhoto: async (id: number, file: File) => {
-    const dataUri = await readAsDataUri(file);
-    return request<Pet>('PUT', `/pets/${id}`, { photo_url: dataUri });
-  },
   deletePhoto: (id: number) => request<Pet>('DELETE', `/pets/${id}/photo`),
 };
 
