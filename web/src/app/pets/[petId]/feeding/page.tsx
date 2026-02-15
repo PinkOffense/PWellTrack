@@ -18,7 +18,7 @@ function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!foodType.trim() || !actual.trim()) { setError(t('auth.fillAllFields')); return; }
+    if (!foodType.trim() || !actual.trim()) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {

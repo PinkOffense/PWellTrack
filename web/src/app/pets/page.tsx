@@ -101,7 +101,8 @@ export default function PetsPage() {
       });
       setDashboards(dMap);
       setVaccineData(vMap);
-    } catch {
+    } catch (err: any) {
+      toast(err.message || t('common.error'), 'error');
     } finally {
       setLoading(false);
     }

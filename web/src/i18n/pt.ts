@@ -22,6 +22,8 @@ export default {
     requiredField: 'Este campo é obrigatório',
     showPassword: 'Mostrar palavra-passe',
     hidePassword: 'Ocultar palavra-passe',
+    retry: 'Tentar novamente',
+    fillAllFields: 'Por favor preencha todos os campos obrigatórios',
   },
   auth: {
     login: 'Entrar',

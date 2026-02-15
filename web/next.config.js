@@ -1,15 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: { unoptimized: true },
-  async rewrites() {
-    const backend = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${backend}/:path*`,
-      },
-    ];
-  },
   async headers() {
     return [
       {

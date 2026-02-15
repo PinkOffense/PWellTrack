@@ -29,7 +29,7 @@ function MedicationForm({ petId, t, onSave, editingItem }: { petId: number; t: a
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name.trim() || !dosage.trim() || !frequency || !startDate) { setError(t('auth.fillAllFields')); return; }
+    if (!name.trim() || !dosage.trim() || !frequency || !startDate) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {
