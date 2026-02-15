@@ -91,13 +91,28 @@ export const authApi = {
     const form = new FormData();
     form.append('file', file);
     const token = tokenStorage.get();
-    const res = await fetch(`${API_BASE}/auth/photo`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    });
-    if (!res.ok) throw new Error('Upload failed');
-    return res.json() as Promise<User>;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30_000);
+    try {
+      const res = await fetch(`${API_BASE}/auth/photo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `Upload failed (${res.status})` }));
+        throw new Error(err.detail || `Upload failed (${res.status})`);
+      }
+      return res.json() as Promise<User>;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw new Error('Upload timed out');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
   },
   deletePhoto: () => request<User>('DELETE', '/auth/photo'),
   changePassword: (data: { current_password: string; new_password: string }) =>
@@ -117,13 +132,28 @@ export const petsApi = {
     const form = new FormData();
     form.append('file', file);
     const token = tokenStorage.get();
-    const res = await fetch(`${API_BASE}/pets/${id}/photo`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    });
-    if (!res.ok) throw new Error('Upload failed');
-    return res.json() as Promise<Pet>;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30_000);
+    try {
+      const res = await fetch(`${API_BASE}/pets/${id}/photo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `Upload failed (${res.status})` }));
+        throw new Error(err.detail || `Upload failed (${res.status})`);
+      }
+      return res.json() as Promise<Pet>;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        throw new Error('Upload timed out');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
   },
   deletePhoto: (id: number) => request<Pet>('DELETE', `/pets/${id}/photo`),
 };

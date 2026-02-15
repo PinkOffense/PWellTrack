@@ -1,5 +1,7 @@
 'use client';
 
+import { resolvePhotoUrl } from '@/lib/photos';
+
 const SPECIES_COLORS: Record<string, string> = {
   dog: 'from-orange-400 to-amber-300',
   cat: 'from-primary to-primary-light',
@@ -19,11 +21,12 @@ const sizes = { sm: 'w-10 h-10 text-sm', md: 'w-14 h-14 text-lg', lg: 'w-20 h-20
 export function PetAvatar({ name, species, photoUrl, size = 'md' }: Props) {
   const initials = name.slice(0, 2).toUpperCase();
   const gradient = SPECIES_COLORS[species] || SPECIES_COLORS.exotic;
+  const src = resolvePhotoUrl(photoUrl);
 
-  if (photoUrl) {
+  if (src) {
     return (
       <img
-        src={photoUrl}
+        src={src}
         alt={name}
         className={`${sizes[size]} rounded-2xl object-cover`}
       />

@@ -10,6 +10,7 @@ import { Modal } from '@/components/Modal';
 import { Globe, LogOut, Camera, Trash2, Lock, AlertTriangle, Check, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { resolvePhotoUrl } from '@/lib/photos';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -149,7 +150,7 @@ export default function SettingsPage() {
               {/* Avatar with photo overlay */}
               <div className="relative shrink-0">
                 {user.photo_url ? (
-                  <img src={user.photo_url} alt={user.name} className="w-20 h-20 rounded-2xl object-cover" />
+                  <img src={resolvePhotoUrl(user.photo_url)} alt={user.name} className="w-20 h-20 rounded-2xl object-cover" />
                 ) : (
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#B4A5D6] to-[#9B8EC8] flex items-center justify-center text-white text-2xl font-bold">
                     {user.name.slice(0, 2).toUpperCase()}
