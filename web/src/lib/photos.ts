@@ -1,25 +1,20 @@
-import { tokenStorage } from './api';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
 /**
- * Resolve a photo URL from the API.
- * - data: URIs and http(s) URLs are used as-is
- * - Relative API paths (e.g. /pets/5/photo) are resolved with API_BASE + auth token
+ * Resolve a photo URL.
+ * - data: URIs and http(s) URLs are returned as-is
+ * - Falsy values return undefined (shows fallback avatar)
  */
 export function resolvePhotoUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('data:') || url.startsWith('http')) return url;
-  const token = tokenStorage.get();
-  const sep = url.includes('?') ? '&' : '?';
-  return `${API_BASE}${url}${token ? `${sep}token=${token}` : ''}`;
+  return undefined;
 }
 
 /**
  * Compress and resize an image file before upload.
  * Converts to JPEG at the given quality, capping dimensions at maxSize px.
+ * Default 512px + quality 0.7 produces ~30-50KB files (safe for JSON body).
  */
-export function compressImage(file: File, maxSize = 1024, quality = 0.8): Promise<File> {
+export function compressImage(file: File, maxSize = 512, quality = 0.7): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
