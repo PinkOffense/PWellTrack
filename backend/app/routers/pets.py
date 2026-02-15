@@ -1,8 +1,6 @@
-import base64
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,18 +22,8 @@ router = APIRouter(prefix="/pets", tags=["pets"])
 
 
 def _pet_out(pet: Pet) -> PetOut:
-    """Convert Pet model to PetOut.
-
-    Small photos (compressed, < 500 KB base64) are kept inline as data URIs
-    so they always render reliably.  Large photos are replaced with an API
-    path served by the GET /{pet_id}/photo endpoint to avoid huge JSON.
-    """
-    out = PetOut.model_validate(pet)
-    if pet.photo_url and pet.photo_url.startswith("data:"):
-        if len(pet.photo_url) > 500_000:           # ~375 KB image
-            out.photo_url = f"/pets/{pet.id}/photo"
-        # else: keep the data URI as-is
-    return out
+    """Convert Pet model to PetOut. Photos are always returned inline as data URIs."""
+    return PetOut.model_validate(pet)
 
 
 @router.get("/", response_model=list[PetOut])
@@ -94,71 +82,6 @@ async def delete_pet(
     pet = await get_pet_for_user(pet_id, current_user, db)
     await db.delete(pet)
     await db.commit()
-
-
-@router.get("/{pet_id}/photo")
-async def get_pet_photo(
-    pet_id: int,
-    token: str | None = None,
-    db: AsyncSession = Depends(get_db),
-):
-    """Serve pet photo as raw image bytes. Accepts token as query param for <img> tags."""
-    from app.core.security import _decode_jwt
-    # Auth via query param (for <img src="...?token=xxx">)
-    if not token:
-        raise HTTPException(status_code=401, detail="Token required")
-    try:
-        payload = _decode_jwt(token)
-        user_id = int(payload["sub"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    pet = await get_pet_for_user(pet_id, user, db)
-    if not pet.photo_url or not pet.photo_url.startswith("data:"):
-        raise HTTPException(status_code=404, detail="No photo")
-    try:
-        meta, b64_data = pet.photo_url.split(",", 1)
-        content_type = meta.split(":")[1].split(";")[0]
-        image_bytes = base64.b64decode(b64_data)
-    except Exception:
-        raise HTTPException(status_code=404, detail="Invalid photo data")
-    return Response(
-        content=image_bytes,
-        media_type=content_type,
-        headers={"Cache-Control": "private, max-age=3600"},
-    )
-
-
-@router.post("/{pet_id}/photo", response_model=PetOut)
-async def upload_pet_photo(
-    pet_id: int,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    pet = await get_pet_for_user(pet_id, current_user, db)
-
-    # Validate file type
-    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-    if file.content_type and file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="File must be an image (JPEG, PNG, GIF, or WebP)")
-
-    # Read with size limit (5 MB)
-    max_size = 5 * 1024 * 1024
-    contents = await file.read()
-    if len(contents) > max_size:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
-
-    b64 = base64.b64encode(contents).decode()
-    mime_ext = {"image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
-    ext = mime_ext.get(file.content_type, "jpeg")
-    pet.photo_url = f"data:image/{ext};base64,{b64}"
-    await db.commit()
-    await db.refresh(pet)
-    return _pet_out(pet)
 
 
 @router.delete("/{pet_id}/photo", response_model=PetOut)

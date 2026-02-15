@@ -1,6 +1,5 @@
-import base64
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -127,29 +126,6 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
 
 
 # ── Profile photo ────────────────────────────────────────────────────────
-
-@router.post("/photo", response_model=UserOut)
-async def upload_profile_photo(
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-    if file.content_type and file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="File must be an image (JPEG, PNG, GIF, or WebP)")
-
-    max_size = 5 * 1024 * 1024
-    contents = await file.read()
-    if len(contents) > max_size:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
-
-    b64 = base64.b64encode(contents).decode()
-    ext = file.filename.split(".")[-1] if file.filename else "jpg"
-    current_user.photo_url = f"data:image/{ext};base64,{b64}"
-    await db.commit()
-    await db.refresh(current_user)
-    return UserOut.model_validate(current_user)
-
 
 @router.put("/photo", response_model=UserOut)
 async def update_photo_json(
