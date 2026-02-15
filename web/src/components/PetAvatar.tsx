@@ -4,6 +4,7 @@ const SPECIES_COLORS: Record<string, string> = {
   dog: 'from-orange-400 to-amber-300',
   cat: 'from-primary to-primary-light',
   exotic: 'from-emerald-400 to-green-300',
+  other: 'from-sky-400 to-teal-300',
 };
 
 interface Props {
