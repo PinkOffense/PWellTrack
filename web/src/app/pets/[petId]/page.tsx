@@ -17,6 +17,7 @@ import { WaterChart } from '@/components/charts/WaterChart';
 import { WeightChart } from '@/components/charts/WeightChart';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { compressImage } from '@/lib/photos';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const QUICK_ACTIONS = [
@@ -176,7 +177,8 @@ export default function PetDashboardPage() {
     if (!file) return;
     setPhotoMenuOpen(false);
     try {
-      const updated = await petsApi.uploadPhoto(petId, file);
+      const compressed = await compressImage(file);
+      const updated = await petsApi.uploadPhoto(petId, compressed);
       setPet(updated);
       toast(t('common.saved'));
     } catch (err: any) {
