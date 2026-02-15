@@ -37,36 +37,46 @@ export const tokenStorage = {
 
 /**
  * Compress image and upload to Supabase Storage (CDN).
- * Falls back to base64 data URI if Supabase is not configured.
+ * Falls back to base64 data URI if Supabase is not configured or upload fails.
  * Returns a URL string (either https://...supabase... or data:image/...).
  */
+let _supabaseStorageBroken = false; // skip Supabase after first RLS / permission failure
+
 export async function preparePhoto(file: File): Promise<string> {
   const { compressImage } = await import('./photos');
   const compressed = await compressImage(file);
 
   // Try Supabase Storage first (browser → Supabase CDN, bypasses Render entirely)
-  try {
-    const { getSupabase } = await import('./supabase');
-    const supabase = getSupabase();
-    if (supabase) {
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-      const { data, error } = await supabase.storage
-        .from('photos')
-        .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
+  if (!_supabaseStorageBroken) {
+    try {
+      const { getSupabase } = await import('./supabase');
+      const supabase = getSupabase();
+      if (supabase) {
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { data, error } = await supabase.storage
+          .from('photos')
+          .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
 
-      if (!error && data) {
-        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
-        if (urlData?.publicUrl) {
-          console.info('[Storage] Photo uploaded to Supabase CDN:', urlData.publicUrl);
-          return urlData.publicUrl;
+        if (!error && data) {
+          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
+          if (urlData?.publicUrl) {
+            console.info('[Storage] Photo uploaded to Supabase CDN:', urlData.publicUrl);
+            return urlData.publicUrl;
+          }
         }
+        // RLS or permission error — don't retry Supabase for the rest of this session
+        if (error?.message?.includes('row-level security') || error?.message?.includes('policy')) {
+          _supabaseStorageBroken = true;
+          console.warn('[Storage] Supabase Storage has RLS issues, using base64 for this session');
+        } else {
+          console.warn('[Storage] Supabase upload failed:', error?.message);
+        }
+      } else {
+        console.info('[Storage] Supabase not configured, using base64');
       }
-      console.warn('[Storage] Supabase upload failed:', error?.message);
-    } else {
-      console.info('[Storage] Supabase not configured, using base64');
+    } catch (e: any) {
+      console.warn('[Storage] Supabase error:', e?.message);
     }
-  } catch (e: any) {
-    console.warn('[Storage] Supabase error:', e?.message);
   }
 
   // Fallback: base64 data URI (sent inside JSON body to backend)

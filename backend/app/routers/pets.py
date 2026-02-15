@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,6 +19,7 @@ from app.schemas.dashboard import PetDashboard, FeedingSummary, WaterSummary
 from app.schemas.event import EventOut
 from app.schemas.medication import MedicationOut
 
+logger = logging.getLogger("pwelltrack.pets")
 router = APIRouter(prefix="/pets", tags=["pets"])
 
 
@@ -41,11 +43,22 @@ async def create_pet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    pet = Pet(**data.model_dump(), user_id=current_user.id)
-    db.add(pet)
-    await db.commit()
-    await db.refresh(pet)
-    return _pet_out(pet)
+    try:
+        pet = Pet(**data.model_dump(), user_id=current_user.id)
+        db.add(pet)
+        await db.commit()
+        await db.refresh(pet)
+        return _pet_out(pet)
+    except Exception as exc:
+        await db.rollback()
+        logger.error(
+            "Failed to create pet for user %s: %s (photo_url length: %s)",
+            current_user.id,
+            exc,
+            len(data.photo_url) if data.photo_url else 0,
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to create pet: {type(exc).__name__}")
 
 
 @router.get("/{pet_id}", response_model=PetOut)
@@ -66,11 +79,16 @@ async def update_pet(
     current_user: User = Depends(get_current_user),
 ):
     pet = await get_pet_for_user(pet_id, current_user, db)
-    for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(pet, key, value)
-    await db.commit()
-    await db.refresh(pet)
-    return _pet_out(pet)
+    try:
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(pet, key, value)
+        await db.commit()
+        await db.refresh(pet)
+        return _pet_out(pet)
+    except Exception as exc:
+        await db.rollback()
+        logger.error("Failed to update pet %s: %s", pet_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to update pet: {type(exc).__name__}")
 
 
 @router.delete("/{pet_id}", status_code=status.HTTP_204_NO_CONTENT)

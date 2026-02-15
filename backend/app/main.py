@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -22,6 +23,23 @@ logging.basicConfig(
 logger = logging.getLogger("pwelltrack")
 
 limiter = Limiter(key_func=get_remote_address)
+
+
+# --- Allowed origins for CORS ---
+_ALLOWED_ORIGINS = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
+_ALLOW_ALL = "*" in _ALLOWED_ORIGINS
+
+
+def _get_cors_origin(request: Request) -> str | None:
+    """Return the origin to reflect in CORS headers, or None if not allowed."""
+    origin = request.headers.get("origin")
+    if not origin:
+        return None
+    if _ALLOW_ALL:
+        return origin  # reflect the actual origin (never send literal "*")
+    if origin in _ALLOWED_ORIGINS:
+        return origin
+    return None
 
 
 @asynccontextmanager
@@ -60,24 +78,47 @@ async def log_requests(request: Request, call_next):
 
 
 # --- Global exception handler ---
+# NOTE: Do NOT add CORS headers here — CORSMiddleware handles them.
+# Adding them here causes duplicate headers that browsers reject.
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
-    # Explicitly include CORS headers so the browser can read the error
-    origin = request.headers.get("origin", "*")
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
-        headers={
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-        },
     )
 
 
+class CORSSafetyMiddleware(BaseHTTPMiddleware):
+    """Outermost middleware: catches any exception that escapes CORSMiddleware
+    and ensures the response always carries CORS headers."""
+
+    async def dispatch(self, request: Request, call_next):
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("Exception escaped middleware stack on %s %s", request.method, request.url.path)
+            response = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+        # Ensure CORS headers exist — if CORSMiddleware didn't set them (e.g. on
+        # uncaught exceptions), set them here.
+        if "access-control-allow-origin" not in response.headers:
+            origin = _get_cors_origin(request)
+            if origin:
+                response.headers["access-control-allow-origin"] = origin
+                response.headers["access-control-allow-credentials"] = "true"
+        return response
+
+
+# Middleware order matters — outermost first:
+# 1. CORSSafetyMiddleware (catches everything, ensures CORS on errors)
+# 2. CORSMiddleware (standard CORS handling for normal requests)
+# 3. log_requests (request logging)
+# 4. FastAPI ExceptionMiddleware + route handlers
+app.add_middleware(CORSSafetyMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

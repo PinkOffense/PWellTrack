@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
+import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
 
 const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
 
@@ -129,6 +129,25 @@ export default function PetsPage() {
   const nameError = touched.name && !formData.name.trim() ? t('pets.nameRequired') : '';
   const speciesError = touched.customSpecies && formData.species === 'other' && !formData.customSpecies.trim() ? t('pets.speciesRequired') : '';
 
+  const createPetWithFallback = async (petData: Omit<PetCreate, 'photo_url'>, photoUrl?: string): Promise<Pet> => {
+    const payload: PetCreate = { ...petData, photo_url: photoUrl };
+    try {
+      return await petsApi.create(payload);
+    } catch (err) {
+      if (!photoUrl) throw err;
+      // If creation with photo failed, retry without photo then attach it separately
+      console.warn('[Pets] Create with photo failed, retrying without photo...', (err as Error).message);
+      const created = await petsApi.create(petData);
+      // Try to attach the photo via update (best-effort)
+      try {
+        return await petsApi.update(created.id, { photo_url: photoUrl });
+      } catch {
+        console.warn('[Pets] Photo update also failed, pet created without photo');
+        return created;
+      }
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -143,15 +162,15 @@ export default function PetsPage() {
       if (newPetPhoto) {
         try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
       }
-      const created = await petsApi.create({
+      const petData = {
         name: formData.name.trim(),
         species: finalSpecies,
         breed: formData.breed.trim() || undefined,
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
-        photo_url: photoUrl,
-      });
+      };
+      const created = await createPetWithFallback(petData, photoUrl);
       setPets(prev => [...prev, created]);
       setShowForm(false);
       resetForm();
@@ -175,15 +194,15 @@ export default function PetsPage() {
       if (newPetPhoto) {
         try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
       }
-      const created = await petsApi.create({
+      const petData = {
         name: formData.name.trim(),
         species: finalSpecies,
         breed: formData.breed.trim() || undefined,
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
-        photo_url: photoUrl,
-      });
+      };
+      const created = await createPetWithFallback(petData, photoUrl);
       setPets(prev => [...prev, created]);
       resetForm(true);
       loadPets();
