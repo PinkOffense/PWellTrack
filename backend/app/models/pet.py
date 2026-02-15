@@ -35,3 +35,4 @@ class Pet(Base):
     medications = relationship("Medication", back_populates="pet", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="pet", cascade="all, delete-orphan")
     symptoms = relationship("Symptom", back_populates="pet", cascade="all, delete-orphan")
+    weight_logs = relationship("WeightLog", back_populates="pet", cascade="all, delete-orphan")

@@ -4,18 +4,27 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { medicationsApi } from '@/lib/api';
 import { RecordPage } from '@/components/RecordPage';
-import { Pill } from 'lucide-react';
+import { Pill, Plus, X } from 'lucide-react';
 import type { Medication } from '@/lib/types';
 
-function MedicationForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => void }) {
-  const [name, setName] = useState('');
-  const [dosage, setDosage] = useState('');
-  const [frequency, setFrequency] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState('');
-  const [notes, setNotes] = useState('');
+function MedicationForm({ petId, t, onSave, editingItem }: { petId: number; t: any; onSave: () => void; editingItem?: Medication }) {
+  const [name, setName] = useState(editingItem?.name ?? '');
+  const [dosage, setDosage] = useState(editingItem?.dosage ?? '');
+  const [frequency, setFrequency] = useState(editingItem ? String(editingItem.frequency_per_day) : '');
+  const [startDate, setStartDate] = useState(editingItem?.start_date ?? new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(editingItem?.end_date ?? '');
+  const [timesOfDay, setTimesOfDay] = useState<string[]>(editingItem?.times_of_day ?? []);
+  const [newTime, setNewTime] = useState('');
+  const [notes, setNotes] = useState(editingItem?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const addTimeSlot = () => {
+    if (newTime && !timesOfDay.includes(newTime)) {
+      setTimesOfDay(prev => [...prev, newTime].sort());
+      setNewTime('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,14 +32,17 @@ function MedicationForm({ petId, t, onSave }: { petId: number; t: any; onSave: (
     if (!name.trim() || !dosage.trim() || !frequency || !startDate) { setError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await medicationsApi.create(petId, {
+      const payload = {
         name: name.trim(),
         dosage: dosage.trim(),
         frequency_per_day: Number(frequency),
         start_date: startDate,
         end_date: endDate || undefined,
+        times_of_day: timesOfDay.length > 0 ? timesOfDay : undefined,
         notes: notes.trim() || undefined,
-      });
+      };
+      if (editingItem) await medicationsApi.update(editingItem.id, payload);
+      else await medicationsApi.create(petId, payload);
       onSave();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
@@ -62,6 +74,27 @@ function MedicationForm({ petId, t, onSave }: { petId: number; t: any; onSave: (
         </div>
       </div>
       <div>
+        <label className="text-sm font-medium text-txt-secondary block mb-1">{t('medications.timesOfDay')}</label>
+        <div className="flex gap-2 mb-2">
+          <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="input flex-1" />
+          <button type="button" onClick={addTimeSlot} className="btn-secondary px-3">
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+        {timesOfDay.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {timesOfDay.map(time => (
+              <span key={time} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-sm font-medium">
+                {time}
+                <button type="button" onClick={() => setTimesOfDay(prev => prev.filter(t => t !== time))} className="hover:text-red-500">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('common.notes')}</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} className="input" rows={2} />
       </div>
@@ -82,6 +115,8 @@ export default function MedicationsPage() {
       icon={<Pill className="w-8 h-8" />}
       listFn={medicationsApi.list}
       deleteFn={medicationsApi.delete}
+      updateFn={medicationsApi.update}
+      supportsDateFilter
       renderItem={(item, t) => {
         const ongoing = !item.end_date || new Date(item.end_date) >= new Date();
         return (
@@ -95,10 +130,19 @@ export default function MedicationsPage() {
               {new Date(item.start_date).toLocaleDateString()}
               {item.end_date && ` → ${new Date(item.end_date).toLocaleDateString()}`}
             </p>
+            {item.times_of_day && item.times_of_day.length > 0 && (
+              <div className="flex gap-1 mt-1">
+                {item.times_of_day.map(time => (
+                  <span key={time} className="text-xs px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 font-medium">{time}</span>
+                ))}
+              </div>
+            )}
           </>
         );
       }}
-      renderForm={({ petId, t, onSave }) => <MedicationForm petId={petId} t={t} onSave={onSave} />}
+      renderForm={({ petId, t, onSave, editingItem }) => (
+        <MedicationForm key={editingItem?.id ?? 'new'} petId={petId} t={t} onSave={onSave} editingItem={editingItem} />
+      )}
     />
   );
 }

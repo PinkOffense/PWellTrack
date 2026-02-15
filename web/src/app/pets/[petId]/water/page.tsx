@@ -7,9 +7,9 @@ import { RecordPage } from '@/components/RecordPage';
 import { Droplets } from 'lucide-react';
 import type { WaterLog } from '@/lib/types';
 
-function WaterForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => void }) {
-  const [amount, setAmount] = useState('');
-  const [goal, setGoal] = useState('');
+function WaterForm({ petId, t, onSave, editingItem }: { petId: number; t: any; onSave: () => void; editingItem?: WaterLog }) {
+  const [amount, setAmount] = useState(editingItem ? String(editingItem.amount_ml) : '');
+  const [goal, setGoal] = useState(editingItem?.daily_goal_ml ? String(editingItem.daily_goal_ml) : '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,10 +19,9 @@ function WaterForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => 
     if (!amount.trim()) { setError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await waterApi.create(petId, {
-        amount_ml: Number(amount),
-        daily_goal_ml: goal ? Number(goal) : undefined,
-      });
+      const payload = { amount_ml: Number(amount), daily_goal_ml: goal ? Number(goal) : undefined };
+      if (editingItem) await waterApi.update(editingItem.id, payload);
+      else await waterApi.create(petId, payload);
       onSave();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
@@ -56,6 +55,8 @@ export default function WaterPage() {
       icon={<Droplets className="w-8 h-8" />}
       listFn={waterApi.list}
       deleteFn={waterApi.delete}
+      updateFn={waterApi.update}
+      supportsDateFilter
       renderItem={(item) => (
         <>
           <p className="font-semibold text-txt text-blue-600">{item.amount_ml} ml</p>
@@ -63,7 +64,9 @@ export default function WaterPage() {
           <p className="text-xs text-txt-muted">{new Date(item.datetime).toLocaleString()}</p>
         </>
       )}
-      renderForm={({ petId, t, onSave }) => <WaterForm petId={petId} t={t} onSave={onSave} />}
+      renderForm={({ petId, t, onSave, editingItem }) => (
+        <WaterForm key={editingItem?.id ?? 'new'} petId={petId} t={t} onSave={onSave} editingItem={editingItem} />
+      )}
     />
   );
 }

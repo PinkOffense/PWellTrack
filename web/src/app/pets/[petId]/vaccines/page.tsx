@@ -7,12 +7,12 @@ import { RecordPage } from '@/components/RecordPage';
 import { Syringe } from 'lucide-react';
 import type { Vaccine } from '@/lib/types';
 
-function VaccineForm({ petId, t, onSave }: { petId: number; t: any; onSave: () => void }) {
-  const [name, setName] = useState('');
-  const [dateAdmin, setDateAdmin] = useState(new Date().toISOString().slice(0, 10));
-  const [nextDue, setNextDue] = useState('');
-  const [clinic, setClinic] = useState('');
-  const [notes, setNotes] = useState('');
+function VaccineForm({ petId, t, onSave, editingItem }: { petId: number; t: any; onSave: () => void; editingItem?: Vaccine }) {
+  const [name, setName] = useState(editingItem?.name ?? '');
+  const [dateAdmin, setDateAdmin] = useState(editingItem?.date_administered ?? new Date().toISOString().slice(0, 10));
+  const [nextDue, setNextDue] = useState(editingItem?.next_due_date ?? '');
+  const [clinic, setClinic] = useState(editingItem?.clinic ?? '');
+  const [notes, setNotes] = useState(editingItem?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,13 +22,15 @@ function VaccineForm({ petId, t, onSave }: { petId: number; t: any; onSave: () =
     if (!name.trim() || !dateAdmin) { setError(t('auth.fillAllFields')); return; }
     setSaving(true);
     try {
-      await vaccinesApi.create(petId, {
+      const payload = {
         name: name.trim(),
         date_administered: dateAdmin,
         next_due_date: nextDue || undefined,
         clinic: clinic.trim() || undefined,
         notes: notes.trim() || undefined,
-      });
+      };
+      if (editingItem) await vaccinesApi.update(editingItem.id, payload);
+      else await vaccinesApi.create(petId, payload);
       onSave();
     } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
@@ -67,7 +69,6 @@ function VaccineForm({ petId, t, onSave }: { petId: number; t: any; onSave: () =
 export default function VaccinesPage() {
   const { t } = useTranslation();
   const now = new Date();
-
   return (
     <RecordPage<Vaccine>
       title={t('vaccines.title')}
@@ -76,6 +77,8 @@ export default function VaccinesPage() {
       icon={<Syringe className="w-8 h-8" />}
       listFn={vaccinesApi.list}
       deleteFn={vaccinesApi.delete}
+      updateFn={vaccinesApi.update}
+      supportsDateFilter
       renderItem={(item, t) => {
         const overdue = item.next_due_date && new Date(item.next_due_date) < now;
         return (
@@ -94,7 +97,9 @@ export default function VaccinesPage() {
           </>
         );
       }}
-      renderForm={({ petId, t, onSave }) => <VaccineForm petId={petId} t={t} onSave={onSave} />}
+      renderForm={({ petId, t, onSave, editingItem }) => (
+        <VaccineForm key={editingItem?.id ?? 'new'} petId={petId} t={t} onSave={onSave} editingItem={editingItem} />
+      )}
     />
   );
 }

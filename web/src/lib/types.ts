@@ -146,6 +146,19 @@ export interface SymptomCreate {
   notes?: string;
 }
 
+export interface WeightLog {
+  id: number;
+  pet_id: number;
+  datetime: string;
+  weight_kg: number;
+  notes?: string;
+}
+
+export interface WeightCreate {
+  weight_kg: number;
+  notes?: string;
+}
+
 export interface PetDashboard {
   feeding: {
     total_actual_grams: number;
