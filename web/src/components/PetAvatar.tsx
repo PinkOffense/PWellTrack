@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { resolvePhotoUrl } from '@/lib/photos';
 
 const SPECIES_COLORS: Record<string, string> = {
@@ -19,23 +20,27 @@ interface Props {
 const sizes = { sm: 'w-10 h-10 text-sm', md: 'w-14 h-14 text-lg', lg: 'w-20 h-20 text-2xl' };
 
 export function PetAvatar({ name, species, photoUrl, size = 'md' }: Props) {
+  const [imgError, setImgError] = useState(false);
   const initials = name.slice(0, 2).toUpperCase();
   const gradient = SPECIES_COLORS[species] || SPECIES_COLORS.exotic;
   const src = resolvePhotoUrl(photoUrl);
 
-  if (src) {
+  const fallback = (
+    <div className={`${sizes[size]} rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm`}>
+      {initials}
+    </div>
+  );
+
+  if (src && !imgError) {
     return (
       <img
         src={src}
         alt={name}
         className={`${sizes[size]} rounded-2xl object-cover`}
+        onError={() => setImgError(true)}
       />
     );
   }
 
-  return (
-    <div className={`${sizes[size]} rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm`}>
-      {initials}
-    </div>
-  );
+  return fallback;
 }

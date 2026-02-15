@@ -24,10 +24,17 @@ router = APIRouter(prefix="/pets", tags=["pets"])
 
 
 def _pet_out(pet: Pet) -> PetOut:
-    """Convert Pet model to PetOut, replacing base64 photo_url with an API path."""
+    """Convert Pet model to PetOut.
+
+    Small photos (compressed, < 500 KB base64) are kept inline as data URIs
+    so they always render reliably.  Large photos are replaced with an API
+    path served by the GET /{pet_id}/photo endpoint to avoid huge JSON.
+    """
     out = PetOut.model_validate(pet)
     if pet.photo_url and pet.photo_url.startswith("data:"):
-        out.photo_url = f"/pets/{pet.id}/photo"
+        if len(pet.photo_url) > 500_000:           # ~375 KB image
+            out.photo_url = f"/pets/{pet.id}/photo"
+        # else: keep the data URI as-is
     return out
 
 
