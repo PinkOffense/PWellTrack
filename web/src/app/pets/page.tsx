@@ -147,10 +147,21 @@ export default function PetsPage() {
         sex: formData.sex || undefined,
       });
       if (newPetPhoto) {
-        try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
+        try {
+          const withPhoto = await petsApi.uploadPhoto(created.id, newPetPhoto);
+          // Immediately add the pet with photo to the list
+          setPets(prev => [...prev, withPhoto]);
+        } catch {
+          // Pet was created but photo failed - still add pet without photo
+          setPets(prev => [...prev, created]);
+          toast(t('common.error'), 'warning');
+        }
+      } else {
+        setPets(prev => [...prev, created]);
       }
       setShowForm(false);
       resetForm();
+      // Reload dashboards/vaccines for the new pet in background
       loadPets();
       toast(t('pets.petAdded'));
     } catch (err: any) {
@@ -176,9 +187,18 @@ export default function PetsPage() {
         sex: formData.sex || undefined,
       });
       if (newPetPhoto) {
-        try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
+        try {
+          const withPhoto = await petsApi.uploadPhoto(created.id, newPetPhoto);
+          setPets(prev => [...prev, withPhoto]);
+        } catch {
+          setPets(prev => [...prev, created]);
+          toast(t('common.error'), 'warning');
+        }
+      } else {
+        setPets(prev => [...prev, created]);
       }
       resetForm(true);
+      // Reload dashboards/vaccines for the new pet in background
       loadPets();
       toast(t('pets.petAdded'));
     } catch (err: any) {
