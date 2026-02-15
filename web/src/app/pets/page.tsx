@@ -58,9 +58,11 @@ export default function PetsPage() {
   const [formData, setFormData] = useState({ name: '', species: 'dog', customSpecies: '', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [newPetPhoto, setNewPetPhoto] = useState<File | null>(null);
   const [newPetPhotoPreview, setNewPetPhotoPreview] = useState<string | null>(null);
   const newPetPhotoRef = useRef<HTMLInputElement>(null);
+  const customSpeciesRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
   const [photoMenuId, setPhotoMenuId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,11 +108,34 @@ export default function PetsPage() {
 
   useEffect(() => { if (user) loadPets(); }, [user]);
 
+  const resetForm = (keepSpeciesAndSex = false) => {
+    setFormData(f => ({
+      name: '',
+      species: keepSpeciesAndSex ? f.species : 'dog',
+      customSpecies: keepSpeciesAndSex ? f.customSpecies : '',
+      breed: '',
+      weight_kg: '',
+      date_of_birth: '',
+      sex: keepSpeciesAndSex ? f.sex : '',
+    }));
+    setNewPetPhoto(null);
+    setNewPetPhotoPreview(null);
+    setTouched({});
+    setFormError('');
+  };
+
+  // Validation helpers
+  const nameError = touched.name && !formData.name.trim() ? t('pets.nameRequired') : '';
+  const speciesError = touched.customSpecies && formData.species === 'other' && !formData.customSpecies.trim() ? t('pets.speciesRequired') : '';
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
+    // Mark all required fields as touched
+    setTouched({ name: true, customSpecies: true });
     const finalSpecies = formData.species === 'other' ? formData.customSpecies.trim() : formData.species;
-    if (!formData.name.trim() || !finalSpecies) { setFormError(t('auth.fillAllFields')); return; }
+    if (!formData.name.trim()) return;
+    if (!finalSpecies) return;
     setSaving(true);
     try {
       const created = await petsApi.create({
@@ -125,11 +150,37 @@ export default function PetsPage() {
         try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
       }
       setShowForm(false);
-      setFormData({ name: '', species: 'dog', customSpecies: '', breed: '', weight_kg: '', date_of_birth: '', sex: '' });
-      setNewPetPhoto(null);
-      setNewPetPhotoPreview(null);
+      resetForm();
       loadPets();
-      toast(t('common.saved'));
+      toast(t('pets.petAdded'));
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateAndAddAnother = async () => {
+    setFormError('');
+    setTouched({ name: true, customSpecies: true });
+    const finalSpecies = formData.species === 'other' ? formData.customSpecies.trim() : formData.species;
+    if (!formData.name.trim() || !finalSpecies) return;
+    setSaving(true);
+    try {
+      const created = await petsApi.create({
+        name: formData.name.trim(),
+        species: finalSpecies,
+        breed: formData.breed.trim() || undefined,
+        weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
+        date_of_birth: formData.date_of_birth || undefined,
+        sex: formData.sex || undefined,
+      });
+      if (newPetPhoto) {
+        try { await petsApi.uploadPhoto(created.id, newPetPhoto); } catch {}
+      }
+      resetForm(true);
+      loadPets();
+      toast(t('pets.petAdded'));
     } catch (err: any) {
       setFormError(err.message);
     } finally {
@@ -342,10 +393,15 @@ export default function PetsPage() {
         )}
 
         {/* Add pet modal */}
-        <Modal open={showForm} onClose={() => setShowForm(false)} title={t('pets.addPet')}>
-          <form onSubmit={handleCreate} className="space-y-4">
+        <Modal open={showForm} onClose={() => { setShowForm(false); resetForm(); }} title={t('pets.addPet')}>
+          <form onSubmit={handleCreate} className="space-y-5">
+            {/* Intro text */}
+            <p className="text-sm text-txt-muted -mt-1">{t('pets.addPetIntro')}</p>
+
             {formError && <div className="bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">{formError}</div>}
-            <div className="flex justify-center">
+
+            {/* Photo picker */}
+            <div className="flex flex-col items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => newPetPhotoRef.current?.click()}
@@ -365,10 +421,11 @@ export default function PetsPage() {
                   </div>
                 )}
               </button>
+              <span className="text-[11px] text-txt-muted">{t('pets.photoHint')}</span>
               <input
                 ref={newPetPhotoRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -380,19 +437,36 @@ export default function PetsPage() {
                 }}
               />
             </div>
+
+            {/* Name - required */}
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.name')} *</label>
-              <input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} className="input" />
+              <label className="text-sm font-semibold text-txt block mb-1.5">{t('pets.name')} <span className="text-red-400">*</span></label>
+              <input
+                value={formData.name}
+                onChange={e => { setFormData(f => ({ ...f, name: e.target.value })); setTouched(t => ({ ...t, name: true })); }}
+                onBlur={() => setTouched(t => ({ ...t, name: true }))}
+                className={`input text-[15px] ${nameError ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : ''}`}
+                placeholder={t('pets.namePlaceholder')}
+                autoFocus
+              />
+              {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
             </div>
+
+            {/* Species - required */}
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.species')} *</label>
+              <label className="text-sm font-semibold text-txt block mb-1.5">{t('pets.species')} <span className="text-red-400">*</span></label>
               <div className="flex gap-2 flex-wrap">
                 {['dog', 'cat', 'exotic', 'other'].map(s => (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => setFormData(f => ({ ...f, species: s }))}
-                    className={`flex-1 min-w-[70px] py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                    onClick={() => {
+                      setFormData(f => ({ ...f, species: s }));
+                      if (s === 'other') {
+                        setTimeout(() => customSpeciesRef.current?.focus(), 50);
+                      }
+                    }}
+                    className={`flex-1 min-w-[70px] min-h-[44px] py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
                       ${formData.species === s
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
@@ -402,37 +476,79 @@ export default function PetsPage() {
                 ))}
               </div>
               {formData.species === 'other' && (
-                <input
-                  value={formData.customSpecies}
-                  onChange={e => setFormData(f => ({ ...f, customSpecies: e.target.value }))}
-                  className="input mt-2"
-                  placeholder={t('pets.specifySpecies')}
-                />
+                <div className="mt-2">
+                  <input
+                    ref={customSpeciesRef}
+                    value={formData.customSpecies}
+                    onChange={e => { setFormData(f => ({ ...f, customSpecies: e.target.value })); setTouched(t => ({ ...t, customSpecies: true })); }}
+                    onBlur={() => setTouched(t => ({ ...t, customSpecies: true }))}
+                    className={`input text-[15px] ${speciesError ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : ''}`}
+                    placeholder={t('pets.specifySpecies')}
+                  />
+                  {speciesError && <p className="text-xs text-red-500 mt-1">{speciesError}</p>}
+                </div>
               )}
             </div>
+
+            {/* Breed - optional */}
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.breed')}</label>
-              <input value={formData.breed} onChange={e => setFormData(f => ({ ...f, breed: e.target.value }))} className="input" placeholder="Golden Retriever..." />
+              <label className="text-sm font-semibold text-txt block mb-1.5">
+                {t('pets.breed')}
+                <span className="text-xs font-normal text-txt-muted ml-1.5">({t('pets.optional')})</span>
+              </label>
+              <input
+                value={formData.breed}
+                onChange={e => setFormData(f => ({ ...f, breed: e.target.value }))}
+                className="input text-[15px]"
+                placeholder={t('pets.breedPlaceholder')}
+              />
             </div>
+
+            {/* Weight + DOB - optional, side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
-                <input type="number" min="0" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+                <label className="text-sm font-semibold text-txt block mb-1.5">
+                  {t('pets.weight')}
+                  <span className="text-xs font-normal text-txt-muted ml-1.5">({t('pets.optional')})</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={formData.weight_kg}
+                  onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))}
+                  className="input text-[15px]"
+                  placeholder={t('pets.weightPlaceholder')}
+                />
               </div>
               <div>
-                <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.dob')}</label>
-                <input type="date" max={new Date().toISOString().slice(0, 10)} value={formData.date_of_birth} onChange={e => setFormData(f => ({ ...f, date_of_birth: e.target.value }))} className="input" />
+                <label className="text-sm font-semibold text-txt block mb-1.5">
+                  {t('pets.dob')}
+                  <span className="text-xs font-normal text-txt-muted ml-1.5">({t('pets.optional')})</span>
+                </label>
+                <input
+                  type="date"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={formData.date_of_birth}
+                  onChange={e => setFormData(f => ({ ...f, date_of_birth: e.target.value }))}
+                  className="input text-[15px]"
+                />
               </div>
             </div>
+
+            {/* Sex - optional */}
             <div>
-              <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.sex')}</label>
+              <label className="text-sm font-semibold text-txt block mb-1.5">
+                {t('pets.sex')}
+                <span className="text-xs font-normal text-txt-muted ml-1.5">({t('pets.optional')})</span>
+              </label>
               <div className="flex gap-2">
                 {[{ value: '', label: '—' }, { value: 'male', label: t('pets.male') }, { value: 'female', label: t('pets.female') }].map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => setFormData(f => ({ ...f, sex: opt.value }))}
-                    className={`flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
+                    className={`flex-1 min-h-[44px] py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 border
                       ${formData.sex === opt.value
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-gray-100 text-txt-secondary hover:border-primary/30'}`}
@@ -442,10 +558,22 @@ export default function PetsPage() {
                 ))}
               </div>
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">{t('common.cancel')}</button>
-              <button type="submit" disabled={saving} className="btn-primary flex-1">
-                {saving ? t('common.loading') : t('common.save')}
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 pt-2">
+              <button type="submit" disabled={saving} className="btn-primary w-full min-h-[44px] text-[15px]">
+                {saving ? t('common.loading') : t('pets.addPet')}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleCreateAndAddAnother}
+                className="w-full min-h-[44px] py-3 rounded-2xl text-sm font-medium text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('pets.addAnother')}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-secondary w-full min-h-[44px]">
+                {t('common.cancel')}
               </button>
             </div>
           </form>
