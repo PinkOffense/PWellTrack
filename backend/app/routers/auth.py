@@ -133,10 +133,12 @@ async def update_photo_json(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Accept photo as base64 data URI in a JSON body (avoids multipart issues)."""
-    if not data.photo_data.startswith("data:image/"):
+    """Accept photo as Supabase Storage URL or base64 data URI."""
+    is_url = data.photo_data.startswith("https://")
+    is_data_uri = data.photo_data.startswith("data:image/")
+    if not is_url and not is_data_uri:
         raise HTTPException(status_code=400, detail="Invalid photo data")
-    if len(data.photo_data) > 7_000_000:
+    if is_data_uri and len(data.photo_data) > 7_000_000:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
     current_user.photo_url = data.photo_data
     await db.commit()

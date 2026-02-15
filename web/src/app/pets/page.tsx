@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { petsApi, vaccinesApi } from '@/lib/api';
+import { petsApi, vaccinesApi, preparePhoto } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { PetAvatar } from '@/components/PetAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { compressImage } from '@/lib/photos';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
 const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
@@ -133,13 +132,17 @@ export default function PetsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
-    // Mark all required fields as touched
     setTouched({ name: true, customSpecies: true });
     const finalSpecies = formData.species === 'other' ? formData.customSpecies.trim() : formData.species;
     if (!formData.name.trim()) return;
     if (!finalSpecies) return;
     setSaving(true);
     try {
+      // Include photo in create payload (single request, no separate upload)
+      let photoUrl: string | undefined;
+      if (newPetPhoto) {
+        try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
+      }
       const created = await petsApi.create({
         name: formData.name.trim(),
         species: finalSpecies,
@@ -147,20 +150,9 @@ export default function PetsPage() {
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
+        photo_url: photoUrl,
       });
-      if (newPetPhoto) {
-        try {
-          const compressed = await compressImage(newPetPhoto);
-          const withPhoto = await petsApi.uploadPhoto(created.id, compressed);
-          setPets(prev => [...prev, withPhoto]);
-        } catch (photoErr: any) {
-          // Pet created but photo failed - show specific error
-          setPets(prev => [...prev, created]);
-          toast(photoErr.message || t('common.error'), 'error');
-        }
-      } else {
-        setPets(prev => [...prev, created]);
-      }
+      setPets(prev => [...prev, created]);
       setShowForm(false);
       resetForm();
       loadPets();
@@ -179,6 +171,10 @@ export default function PetsPage() {
     if (!formData.name.trim() || !finalSpecies) return;
     setSaving(true);
     try {
+      let photoUrl: string | undefined;
+      if (newPetPhoto) {
+        try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
+      }
       const created = await petsApi.create({
         name: formData.name.trim(),
         species: finalSpecies,
@@ -186,19 +182,9 @@ export default function PetsPage() {
         weight_kg: formData.weight_kg ? Number(formData.weight_kg) : undefined,
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
+        photo_url: photoUrl,
       });
-      if (newPetPhoto) {
-        try {
-          const compressed = await compressImage(newPetPhoto);
-          const withPhoto = await petsApi.uploadPhoto(created.id, compressed);
-          setPets(prev => [...prev, withPhoto]);
-        } catch (photoErr: any) {
-          setPets(prev => [...prev, created]);
-          toast(photoErr.message || t('common.error'), 'error');
-        }
-      } else {
-        setPets(prev => [...prev, created]);
-      }
+      setPets(prev => [...prev, created]);
       resetForm(true);
       loadPets();
       toast(t('pets.petAdded'));
@@ -221,8 +207,8 @@ export default function PetsPage() {
     if (!file || !petId) return;
     setPhotoError('');
     try {
-      const compressed = await compressImage(file);
-      const updated = await petsApi.uploadPhoto(petId, compressed);
+      const photoUrl = await preparePhoto(file);
+      const updated = await petsApi.update(petId, { photo_url: photoUrl });
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
       toast(t('common.saved'));
     } catch (err: any) {
