@@ -10,6 +10,7 @@ import { PetAvatar } from '@/components/PetAvatar';
 import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
 const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
@@ -48,6 +49,7 @@ export default function PetsPage() {
   const { t } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [pets, setPets] = useState<Pet[]>([]);
   const [dashboards, setDashboards] = useState<Record<number, PetDashboard | null>>({});
   const [vaccineData, setVaccineData] = useState<Record<number, Vaccine[]>>({});
@@ -127,6 +129,7 @@ export default function PetsPage() {
       setNewPetPhoto(null);
       setNewPetPhotoPreview(null);
       loadPets();
+      toast(t('common.saved'));
     } catch (err: any) {
       setFormError(err.message);
     } finally {
@@ -148,6 +151,7 @@ export default function PetsPage() {
     try {
       const updated = await petsApi.uploadPhoto(petId, file);
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
+      toast(t('common.saved'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
       setTimeout(() => setPhotoError(''), 4000);
@@ -162,6 +166,7 @@ export default function PetsPage() {
     try {
       const updated = await petsApi.deletePhoto(petId);
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
+      toast(t('common.deleted'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
       setTimeout(() => setPhotoError(''), 4000);
@@ -412,11 +417,11 @@ export default function PetsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.weight')}</label>
-                <input type="number" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
+                <input type="number" min="0" step="0.1" value={formData.weight_kg} onChange={e => setFormData(f => ({ ...f, weight_kg: e.target.value }))} className="input" placeholder="12.5" />
               </div>
               <div>
                 <label className="text-sm font-medium text-txt-secondary block mb-1.5">{t('pets.dob')}</label>
-                <input type="date" value={formData.date_of_birth} onChange={e => setFormData(f => ({ ...f, date_of_birth: e.target.value }))} className="input" />
+                <input type="date" max={new Date().toISOString().slice(0, 10)} value={formData.date_of_birth} onChange={e => setFormData(f => ({ ...f, date_of_birth: e.target.value }))} className="input" />
               </div>
             </div>
             <div>

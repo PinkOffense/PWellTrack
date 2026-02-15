@@ -43,11 +43,11 @@ function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('feeding.actualGrams')} *</label>
-        <input type="number" value={actual} onChange={e => setActual(e.target.value)} className="input" placeholder="200" />
+        <input type="number" min="0" step="1" value={actual} onChange={e => setActual(e.target.value)} className="input" placeholder="200" />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('feeding.plannedGrams')}</label>
-        <input type="number" value={planned} onChange={e => setPlanned(e.target.value)} className="input" placeholder="250" />
+        <input type="number" min="0" step="1" value={planned} onChange={e => setPlanned(e.target.value)} className="input" placeholder="250" />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('common.notes')}</label>
