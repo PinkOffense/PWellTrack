@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authApi, tokenStorage, checkBackend } from './api';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { getSupabase, isSupabaseConfigured } from './supabase';
 import type { User } from './types';
 
 interface AuthState {
@@ -62,8 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
 
     // Listen for Supabase auth callback (Google OAuth redirect)
-    if (!isSupabaseConfigured || !supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const sb = getSupabase();
+    if (!isSupabaseConfigured || !sb) return;
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
       // Handle both SIGNED_IN (new login) and INITIAL_SESSION (page reload after redirect)
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         // Skip if we already have a user from stored token
@@ -97,10 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) {
+    const sb = getSupabase();
+    if (!isSupabaseConfigured || !sb) {
       throw new Error('Google Sign-In not configured');
     }
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin + '/login',
@@ -111,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     tokenStorage.clear();
-    supabase?.auth.signOut().catch(() => {});
+    getSupabase()?.auth.signOut().catch(() => {});
     setUser(null);
   }, []);
 
