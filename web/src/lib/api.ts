@@ -6,7 +6,9 @@ import type {
   WeightLog, WeightCreate,
 } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// All API calls go through the Next.js proxy (/api/*) to avoid CORS issues.
+// The proxy destination is configured in next.config.js rewrites().
+const API_BASE = '/api';
 
 // ── Token storage ──
 let _token: string | null = null;
