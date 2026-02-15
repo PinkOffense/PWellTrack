@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { compressImage } from '@/lib/photos';
 import type { Pet, PetDashboard, Vaccine } from '@/lib/types';
 
 const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
@@ -148,7 +149,8 @@ export default function PetsPage() {
       });
       if (newPetPhoto) {
         try {
-          const withPhoto = await petsApi.uploadPhoto(created.id, newPetPhoto);
+          const compressed = await compressImage(newPetPhoto);
+          const withPhoto = await petsApi.uploadPhoto(created.id, compressed);
           setPets(prev => [...prev, withPhoto]);
         } catch (photoErr: any) {
           // Pet created but photo failed - show specific error
@@ -186,7 +188,8 @@ export default function PetsPage() {
       });
       if (newPetPhoto) {
         try {
-          const withPhoto = await petsApi.uploadPhoto(created.id, newPetPhoto);
+          const compressed = await compressImage(newPetPhoto);
+          const withPhoto = await petsApi.uploadPhoto(created.id, compressed);
           setPets(prev => [...prev, withPhoto]);
         } catch (photoErr: any) {
           setPets(prev => [...prev, created]);
@@ -217,7 +220,8 @@ export default function PetsPage() {
     if (!file || !petId) return;
     setPhotoError('');
     try {
-      const updated = await petsApi.uploadPhoto(petId, file);
+      const compressed = await compressImage(file);
+      const updated = await petsApi.uploadPhoto(petId, compressed);
       setPets(prev => prev.map(p => p.id === petId ? updated : p));
       toast(t('common.saved'));
     } catch (err: any) {
