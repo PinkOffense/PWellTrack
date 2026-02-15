@@ -14,8 +14,12 @@ export interface Notification {
   timestamp: number;
 }
 
-const WS_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
-  .replace(/^http/, 'ws');
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const WS_BASE = API_BASE.replace(/^http/, 'ws');
+
+const INITIAL_RETRY_DELAY = 5_000;
+const MAX_RETRY_DELAY = 120_000; // 2 minutes max between retries
+const MAX_RETRIES = 10;
 
 export function useNotifications(enabled: boolean) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -23,6 +27,8 @@ export function useNotifications(enabled: boolean) {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
   const pingTimer = useRef<ReturnType<typeof setInterval>>();
   const dismissTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const retryCount = useRef(0);
+  const mountedRef = useRef(true);
 
   const dismiss = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -30,7 +36,9 @@ export function useNotifications(enabled: boolean) {
 
   const connect = useCallback(() => {
     const token = tokenStorage.get();
-    if (!token || !enabled) return;
+    if (!token || !enabled || !mountedRef.current) return;
+
+    if (retryCount.current >= MAX_RETRIES) return;
 
     // Close existing connection
     if (wsRef.current) {
@@ -38,10 +46,14 @@ export function useNotifications(enabled: boolean) {
       wsRef.current = null;
     }
 
+    // Ping the HTTP endpoint first to wake up Render from cold start
+    fetch(`${API_BASE}/health`, { method: 'GET' }).catch(() => {});
+
     const ws = new WebSocket(`${WS_BASE}/ws/notifications?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      retryCount.current = 0; // Reset backoff on successful connection
       // Keep-alive ping every 30 seconds
       pingTimer.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -77,18 +89,30 @@ export function useNotifications(enabled: boolean) {
 
     ws.onclose = () => {
       clearInterval(pingTimer.current);
-      // Reconnect after 5 seconds
-      reconnectTimer.current = setTimeout(connect, 5_000);
+      if (!mountedRef.current) return;
+      if (retryCount.current >= MAX_RETRIES) return;
+
+      // Exponential backoff: 5s, 10s, 20s, 40s, 80s, 120s, 120s...
+      const delay = Math.min(
+        INITIAL_RETRY_DELAY * Math.pow(2, retryCount.current),
+        MAX_RETRY_DELAY
+      );
+      retryCount.current++;
+      reconnectTimer.current = setTimeout(connect, delay);
     };
 
     ws.onerror = () => {
+      // Let onclose handle reconnection
       ws.close();
     };
   }, [enabled, dismiss]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    retryCount.current = 0;
     connect();
     return () => {
+      mountedRef.current = false;
       clearTimeout(reconnectTimer.current);
       clearInterval(pingTimer.current);
       // Clear all auto-dismiss timers
