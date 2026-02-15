@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { resolvePhotoUrl } from '@/lib/photos';
 
 const SPECIES_COLORS: Record<string, string> = {
@@ -24,6 +24,9 @@ export function PetAvatar({ name, species, photoUrl, size = 'md' }: Props) {
   const initials = name.slice(0, 2).toUpperCase();
   const gradient = SPECIES_COLORS[species] || SPECIES_COLORS.exotic;
   const src = resolvePhotoUrl(photoUrl);
+
+  // Reset error state when photo URL changes
+  useEffect(() => { setImgError(false); }, [photoUrl]);
 
   const fallback = (
     <div className={`${sizes[size]} rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm`}>
