@@ -26,7 +26,9 @@ interface Particle {
   phase: number;
 }
 
-const PARTICLE_COUNT = 18;
+const PARTICLE_COUNT = 14;
+const TARGET_FPS = 30;
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
 function createParticles(count: number): Particle[] {
   const particles: Particle[] = [];
@@ -64,6 +66,7 @@ export default function FarmScene() {
   const animRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const lastFrameRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -86,34 +89,40 @@ export default function FarmScene() {
     resize();
     window.addEventListener('resize', resize);
 
-    const animate = () => {
+    const animate = (now: number) => {
+      animRef.current = requestAnimationFrame(animate);
+
+      // Throttle to ~30fps — no need for 60fps on a subtle background
+      const delta = now - lastFrameRef.current;
+      if (delta < FRAME_INTERVAL) return;
+      lastFrameRef.current = now - (delta % FRAME_INTERVAL);
+
       const { w, h } = sizeRef.current;
-      if (w === 0 || h === 0) { animRef.current = requestAnimationFrame(animate); return; }
+      if (w === 0 || h === 0) return;
 
       timeRef.current += 0.016;
       const t = timeRef.current;
 
       ctx.clearRect(0, 0, w, h);
 
-      // ─── Soft gradient blobs (animated mesh gradient feel) ───
-      const blobs = [
-        { x: 30 + Math.sin(t * 0.3) * 15, y: 40 + Math.cos(t * 0.4) * 10, r: 120, color: 'rgba(201,184,232,0.06)' },
-        { x: 70 + Math.cos(t * 0.25) * 12, y: 60 + Math.sin(t * 0.35) * 8, r: 100, color: 'rgba(242,200,210,0.05)' },
-        { x: 50 + Math.sin(t * 0.2) * 20, y: 30 + Math.cos(t * 0.3) * 12, r: 140, color: 'rgba(180,165,214,0.04)' },
-        { x: 15 + Math.cos(t * 0.15) * 10, y: 70 + Math.sin(t * 0.25) * 8, r: 90, color: 'rgba(213,206,240,0.05)' },
+      // ─── Soft gradient blobs ───
+      const blobDefs = [
+        { xBase: 30, yBase: 40, xAmp: 15, yAmp: 10, xFreq: 0.3, yFreq: 0.4, r: 120, color: 'rgba(201,184,232,0.06)' },
+        { xBase: 70, yBase: 60, xAmp: 12, yAmp: 8, xFreq: 0.25, yFreq: 0.35, r: 100, color: 'rgba(242,200,210,0.05)' },
+        { xBase: 50, yBase: 30, xAmp: 20, yAmp: 12, xFreq: 0.2, yFreq: 0.3, r: 140, color: 'rgba(180,165,214,0.04)' },
       ];
 
-      for (const blob of blobs) {
-        const bx = (blob.x / 100) * w;
-        const by = (blob.y / 100) * h;
-        const grad = ctx.createRadialGradient(bx, by, 0, bx, by, blob.r);
-        grad.addColorStop(0, blob.color);
+      for (const b of blobDefs) {
+        const bx = ((b.xBase + Math.sin(t * b.xFreq) * b.xAmp) / 100) * w;
+        const by = ((b.yBase + Math.cos(t * b.yFreq) * b.yAmp) / 100) * h;
+        const grad = ctx.createRadialGradient(bx, by, 0, bx, by, b.r);
+        grad.addColorStop(0, b.color);
         grad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
       }
 
-      // ─── Heartbeat pulse line (subtle, health-themed) ───
+      // ─── Heartbeat pulse line ───
       ctx.save();
       ctx.globalAlpha = 0.06 + Math.sin(t * 1.5) * 0.02;
       ctx.strokeStyle = '#C9B8E8';
@@ -125,7 +134,7 @@ export default function FarmScene() {
       const baseY = h * 0.5;
       const pulseOffset = (t * 40) % w;
 
-      for (let px = 0; px < w; px += 3) {
+      for (let px = 0; px < w; px += 4) {
         const localX = (px + pulseOffset) % w;
         const normalX = localX / w;
 
@@ -160,11 +169,11 @@ export default function FarmScene() {
           p.opacity = 0.08 + Math.random() * 0.22;
         }
 
-        const px = (p.x / 100) * w;
-        const py = (p.y / 100) * h;
+        const ppx = (p.x / 100) * w;
+        const ppy = (p.y / 100) * h;
 
         ctx.save();
-        ctx.translate(px, py);
+        ctx.translate(ppx, ppy);
         ctx.rotate((p.rotation * Math.PI) / 180);
 
         let fadeOpacity = p.opacity;
@@ -172,12 +181,10 @@ export default function FarmScene() {
         if (p.y < 10) fadeOpacity *= p.y / 10;
 
         if (p.type === 'dot') {
-          const dotGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
-          dotGrad.addColorStop(0, p.color + (fadeOpacity * 1.2).toFixed(2) + ')');
-          dotGrad.addColorStop(1, p.color + '0)');
-          ctx.fillStyle = dotGrad;
+          ctx.globalAlpha = fadeOpacity;
+          ctx.fillStyle = p.color + '0.6)';
           ctx.beginPath();
-          ctx.arc(0, 0, p.size * 2, 0, Math.PI * 2);
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
           ctx.fill();
         } else {
           const scale = p.size / 24;
@@ -191,25 +198,20 @@ export default function FarmScene() {
         ctx.restore();
       }
 
-      // ─── Soft wave at the very bottom ───
+      // ─── Soft wave at the bottom ───
       ctx.save();
-      for (let wave = 0; wave < 2; wave++) {
-        const waveY = h - 8 + wave * 3;
-        const waveAlpha = 0.03 - wave * 0.01;
-        ctx.beginPath();
-        ctx.moveTo(0, h);
-        for (let wx = 0; wx <= w; wx += 6) {
-          const wy = waveY + Math.sin((wx / w) * Math.PI * 3 + t * (0.5 + wave * 0.2)) * (4 - wave);
-          ctx.lineTo(wx, wy);
-        }
-        ctx.lineTo(w, h);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(180,165,214,${waveAlpha})`;
-        ctx.fill();
+      const waveY = h - 8;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let wx = 0; wx <= w; wx += 8) {
+        const wy = waveY + Math.sin((wx / w) * Math.PI * 3 + t * 0.5) * 4;
+        ctx.lineTo(wx, wy);
       }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(180,165,214,0.03)';
+      ctx.fill();
       ctx.restore();
-
-      animRef.current = requestAnimationFrame(animate);
     };
 
     animRef.current = requestAnimationFrame(animate);
