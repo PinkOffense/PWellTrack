@@ -42,18 +42,18 @@ export function Modal({ open, onClose, title, children }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="presentation">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         tabIndex={-1}
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto outline-none"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto outline-none"
       >
-        <div className="sticky top-0 bg-white rounded-t-2xl border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white rounded-t-2xl border-b border-gray-100 px-5 py-4 flex items-center justify-between">
           <h2 id="modal-title" className="text-lg font-bold text-txt">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
             <X className="w-5 h-5 text-txt-muted" aria-hidden="true" />
           </button>
         </div>
