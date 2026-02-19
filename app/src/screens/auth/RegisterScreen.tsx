@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   KeyboardAvoidingView, Platform, Animated, TextInput,
-  ScrollView, Dimensions,
+  ScrollView, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,8 +13,6 @@ import { GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'Register'>;
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 // ── Floating heart decoration ──
 function FloatingHeart({ delay, x, y, size, rotation }: {
@@ -98,6 +96,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 export function RegisterScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { register, loginWithGoogle, googleAvailable } = useAuth();
+  const { width: SCREEN_W } = useWindowDimensions();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

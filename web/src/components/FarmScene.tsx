@@ -68,6 +68,8 @@ export default function FarmScene() {
   const sizeRef = useRef({ w: 0, h: 0 });
   const lastFrameRef = useRef<number>(0);
 
+  const visibleRef = useRef(true);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -76,6 +78,15 @@ export default function FarmScene() {
 
     const pawPath = new Path2D(PAW_PATH);
     const heartPath = new Path2D(HEART_PATH);
+
+    // PERF-06: Pause animation when tab is not visible
+    const handleVisibility = () => {
+      visibleRef.current = !document.hidden;
+      if (visibleRef.current && !animRef.current) {
+        animRef.current = requestAnimationFrame(animate);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -90,6 +101,11 @@ export default function FarmScene() {
     window.addEventListener('resize', resize);
 
     const animate = (now: number) => {
+      // PERF-06: Don't animate when tab is hidden
+      if (!visibleRef.current) {
+        animRef.current = 0;
+        return;
+      }
       animRef.current = requestAnimationFrame(animate);
 
       // Throttle to ~30fps — no need for 60fps on a subtle background
@@ -218,6 +234,7 @@ export default function FarmScene() {
 
     return () => {
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibility);
       cancelAnimationFrame(animRef.current);
     };
   }, []);

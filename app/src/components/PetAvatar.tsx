@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, borderRadius } from '../theme';
 
 interface Props {
-  name: string;
+  /** @deprecated No longer used; kept for backwards compatibility */
+  name?: string;
   species: string;
   size?: number;
   photoUrl?: string | null;

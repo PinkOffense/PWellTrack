@@ -86,6 +86,7 @@ export default {
   feeding: {
     title: 'Feeding',
     foodType: 'Food type',
+    foodTypePlaceholder: 'Kibble, chicken...',
     actualGrams: 'Amount (g)',
     plannedGrams: 'Planned amount (g)',
     noLogs: 'No feeding records',
@@ -102,6 +103,7 @@ export default {
   vaccines: {
     title: 'Vaccines',
     name: 'Vaccine name',
+    namePlaceholder: 'Rabies, Parvovirus...',
     dateAdministered: 'Date administered',
     nextDue: 'Next due date',
     clinic: 'Clinic',
@@ -114,6 +116,7 @@ export default {
   medications: {
     title: 'Medications',
     name: 'Medication name',
+    namePlaceholder: 'Amoxicillin...',
     dosage: 'Dosage',
     frequency: 'Times per day',
     startDate: 'Start date',
@@ -148,6 +151,7 @@ export default {
   symptoms: {
     title: 'Symptoms',
     type: 'Symptom type',
+    typePlaceholder: 'Vomiting, diarrhea...',
     severity: 'Severity',
     noRecords: 'No symptoms recorded',
     addSymptom: 'Log Symptom',

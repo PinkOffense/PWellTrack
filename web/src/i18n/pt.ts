@@ -86,6 +86,7 @@ export default {
   feeding: {
     title: 'Alimentação',
     foodType: 'Tipo de comida',
+    foodTypePlaceholder: 'Ração, frango...',
     actualGrams: 'Quantidade (g)',
     plannedGrams: 'Quantidade planeada (g)',
     noLogs: 'Sem registos de alimentação',
@@ -102,6 +103,7 @@ export default {
   vaccines: {
     title: 'Vacinas',
     name: 'Nome da vacina',
+    namePlaceholder: 'Raiva, Parvovirose...',
     dateAdministered: 'Data de administração',
     nextDue: 'Próxima dose',
     clinic: 'Clínica',
