@@ -5,18 +5,18 @@ from pydantic import BaseModel, Field
 
 class SymptomCreate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    type: str
+    type: str = Field(min_length=1, max_length=100)
     severity: str = Field(pattern=r"^(mild|moderate|severe)$")
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 
 
 class SymptomUpdate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    type: Optional[str] = None
-    severity: Optional[str] = None
-    notes: Optional[str] = None
+    type: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    severity: Optional[str] = Field(default=None, pattern=r"^(mild|moderate|severe)$")
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 

@@ -10,6 +10,8 @@ export const enableDemoMode = () => { _demoMode = true; };
 export const disableDemoMode = () => { _demoMode = false; };
 
 // Dynamically import storage depending on platform
+// SEC-06: On web, AsyncStorage uses localStorage which is accessible to any JS on the
+// same origin. This is an inherent limitation; consider HttpOnly cookies for production web.
 const getStorage = async () => {
   if (Platform.OS === 'web') {
     const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
@@ -84,39 +86,26 @@ async function request<T>(method: RequestMethod, path: string, opts?: RequestOpt
   return res.json();
 }
 
+/**
+ * Upload pet photo as base64 data URI via the update endpoint (JSON body).
+ * FormData/multipart uploads fail cross-origin on some platforms,
+ * so we send the photo as a base64 data URI in JSON instead.
+ */
 export async function uploadPetPhoto(petId: number, uri: string): Promise<any> {
-  const token = await tokenStorage.get();
-  const formData = new FormData();
+  let base64Uri = uri;
 
-  // For web, fetch the blob
-  if (typeof window !== 'undefined' && uri.startsWith('data:')) {
-    const res = await fetch(uri);
-    const blob = await res.blob();
-    formData.append('file', blob, 'photo.jpg');
-  } else {
-    // For native
-    const filename = uri.split('/').pop() || 'photo.jpg';
-    const ext = filename.split('.').pop() || 'jpg';
-    formData.append('file', {
-      uri,
-      name: filename,
-      type: `image/${ext}`,
-    } as any);
+  // If it's already a data URI, use it directly
+  if (!uri.startsWith('data:')) {
+    // For native: read the file and convert to base64
+    const { readAsStringAsync, EncodingType } = await import('expo-file-system');
+    const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+    const ext = (uri.split('.').pop() || 'jpeg').toLowerCase();
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    base64Uri = `data:${mimeType};base64,${base64}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}/pets/${petId}/photo`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: 'Upload failed' }));
-    throw new Error(err.detail || 'Upload failed');
-  }
-  return response.json();
+  // Send via the update pet endpoint as JSON
+  return request('PUT', `/pets/${petId}`, { body: { photo_url: base64Uri } });
 }
 
 export const api = {

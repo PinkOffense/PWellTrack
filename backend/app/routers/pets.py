@@ -58,7 +58,7 @@ async def create_pet(
             len(data.photo_url) if data.photo_url else 0,
             exc_info=True,
         )
-        raise HTTPException(status_code=500, detail=f"Failed to create pet: {type(exc).__name__}")
+        raise HTTPException(status_code=500, detail="Failed to create pet")
 
 
 @router.get("/{pet_id}", response_model=PetOut)
@@ -88,7 +88,7 @@ async def update_pet(
     except Exception as exc:
         await db.rollback()
         logger.error("Failed to update pet %s: %s", pet_id, exc, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to update pet: {type(exc).__name__}")
+        raise HTTPException(status_code=500, detail="Failed to update pet")
 
 
 @router.delete("/{pet_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -6,15 +6,15 @@ from pydantic import BaseModel, Field
 class WeightCreate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
     weight_kg: float = Field(gt=0)
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 
 
 class WeightUpdate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    weight_kg: Optional[float] = None
-    notes: Optional[str] = None
+    weight_kg: Optional[float] = Field(default=None, gt=0)
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 

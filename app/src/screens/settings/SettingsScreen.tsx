@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, fontSize, borderRadius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { ScreenContainer } from '../../components';
 import { requestNotificationPermissions, getScheduledNotifications, cancelAllNotifications } from '../../utils/notifications';
 
 const LANGUAGE_STORAGE_KEY = '@pwelltrack_language';
@@ -58,7 +58,7 @@ export function SettingsScreen() {
       const scheduled = await getScheduledNotifications();
       setScheduledCount(scheduled.length);
     } else {
-      Alert.alert(t('common.error'), 'Notification permissions not granted.');
+      Alert.alert(t('common.error'), t('settings.notificationsNotGranted'));
     }
   };
 
@@ -84,7 +84,7 @@ export function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScreenContainer>
       <Text style={styles.header}>{t('settings.title')}</Text>
 
       {/* Language Section */}
@@ -169,20 +169,11 @@ export function SettingsScreen() {
           <Text style={styles.logoutText}>{t('settings.logout')}</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl + spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
   header: {
     fontSize: fontSize.xxl,
     fontWeight: '700',

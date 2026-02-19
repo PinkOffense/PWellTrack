@@ -49,11 +49,13 @@ export function useNotifications(enabled: boolean) {
     // Ping the HTTP endpoint first to wake up Render from cold start
     fetch(`${API_BASE}/health`, { method: 'GET' }).catch(() => {});
 
-    const ws = new WebSocket(`${WS_BASE}/ws/notifications?token=${token}`);
+    const ws = new WebSocket(`${WS_BASE}/ws/notifications`);
     wsRef.current = ws;
+    let authenticated = false;
 
     ws.onopen = () => {
-      retryCount.current = 0; // Reset backoff on successful connection
+      // Send token as first message instead of in URL (SEC-02)
+      ws.send(JSON.stringify({ type: 'auth', token }));
       // Keep-alive ping every 30 seconds
       pingTimer.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -66,6 +68,20 @@ export function useNotifications(enabled: boolean) {
       if (event.data === 'pong') return;
       try {
         const data = JSON.parse(event.data);
+        // Handle auth confirmation
+        if (data.type === 'auth_ok') {
+          authenticated = true;
+          retryCount.current = 0; // Reset backoff on successful auth
+          return;
+        }
+        if (data.type === 'auth_error') {
+          console.warn('[WS] Auth failed, closing connection');
+          ws.close();
+          return;
+        }
+        // Ignore messages before auth
+        if (!authenticated) return;
+
         const notif: Notification = {
           id: `${data.type}-${data.pet_id}-${data.scheduled_time}-${Date.now()}`,
           type: data.type,

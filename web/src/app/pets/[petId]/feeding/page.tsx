@@ -19,6 +19,8 @@ function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
     e.preventDefault();
     setError('');
     if (!foodType.trim() || !actual.trim()) { setError(t('common.fillAllFields')); return; }
+    // VAL-07: NaN check before submitting numeric values
+    if (isNaN(Number(actual)) || (planned && isNaN(Number(planned)))) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {
@@ -39,7 +41,7 @@ function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
       {error && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('feeding.foodType')} *</label>
-        <input value={foodType} onChange={e => setFoodType(e.target.value)} className="input" placeholder="Racao, frango..." />
+        <input value={foodType} onChange={e => setFoodType(e.target.value)} className="input" placeholder={t('feeding.foodTypePlaceholder')} />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('feeding.actualGrams')} *</label>

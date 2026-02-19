@@ -4,12 +4,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { vaccinesApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
+import { scheduleVaccineReminder } from '../../utils/notifications';
 import { colors, fontSize, spacing } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'VaccineForm'>;
 
 export function VaccineFormScreen({ navigation, route }: Props) {
-  const { petId } = route.params as { petId: number };
+  const { petId, petName } = route.params as { petId: number; petName?: string };
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [dateAdministered, setDateAdministered] = useState('');
@@ -23,15 +24,34 @@ export function VaccineFormScreen({ navigation, route }: Props) {
       Alert.alert(t('common.error'), t('forms.vaccineRequired'));
       return;
     }
+    if (nextDueDate && dateAdministered && nextDueDate < dateAdministered) {
+      Alert.alert(t('common.error'), t('forms.nextDueDateBeforeAdministered'));
+      return;
+    }
     setLoading(true);
     try {
-      await vaccinesApi.create(petId, {
+      const created = await vaccinesApi.create(petId, {
         name,
         date_administered: dateAdministered,
         next_due_date: nextDueDate || undefined,
         clinic: clinic || undefined,
         notes: notes || undefined,
       });
+
+      // Schedule a vaccine reminder if next due date is set
+      if (nextDueDate) {
+        try {
+          await scheduleVaccineReminder(
+            created.id,
+            petName || 'Pet',
+            name,
+            new Date(nextDueDate),
+          );
+        } catch (notifErr) {
+          console.warn('Failed to schedule vaccine reminder:', notifErr);
+        }
+      }
+
       Alert.alert(t('common.success'), t('forms.vaccineSaved'));
       navigation.goBack();
     } catch (e: any) {

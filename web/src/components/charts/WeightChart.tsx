@@ -14,6 +14,7 @@ interface Props {
 export function WeightChart({ petId }: Props) {
   const { t } = useTranslation();
   const [data, setData] = useState<{ date: string; kg: number }[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     weightApi.list(petId).then(logs => {
@@ -22,10 +23,21 @@ export function WeightChart({ petId }: Props) {
         date: new Date(l.datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
         kg: l.weight_kg,
       })));
-    }).catch(() => {});
+      setLoaded(true);
+    }).catch(() => { setLoaded(true); });
   }, [petId]);
 
-  if (data.length < 2) return null;
+  // UX-05/06: Show message when not enough data instead of disappearing
+  if (loaded && data.length < 2) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold text-txt-secondary mb-2">{t('weight.weightHistory')}</h3>
+        <p className="text-sm text-txt-muted py-8 text-center">{t('charts.noData')}</p>
+      </div>
+    );
+  }
+
+  if (!loaded) return null;
 
   return (
     <div>
@@ -36,7 +48,7 @@ export function WeightChart({ petId }: Props) {
           <XAxis dataKey="date" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} width={40} domain={['auto', 'auto']} />
           <Tooltip />
-          <Line type="monotone" dataKey="kg" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} name="kg" />
+          <Line type="monotone" dataKey="kg" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} name={t('charts.weight')} />
         </LineChart>
       </ResponsiveContainer>
     </div>

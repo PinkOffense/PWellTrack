@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
@@ -57,6 +58,8 @@ const linking: LinkingOptions<{}> = {
 };
 
 function MainStack() {
+  const { t } = useTranslation();
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -68,30 +71,30 @@ function MainStack() {
       }}
     >
       <Stack.Screen name="Home" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="PetForm" component={PetFormScreen} options={{ title: 'Pet' }} />
+      <Stack.Screen name="PetForm" component={PetFormScreen} options={{ title: t('nav.pet') }} />
       <Stack.Screen
         name="PetDashboard"
         component={PetDashboardScreen}
-        options={({ route }: any) => ({ title: route.params?.petName ?? 'Pet' })}
+        options={({ route }: any) => ({ title: route.params?.petName ?? t('nav.pet') })}
       />
       {/* Feeding */}
-      <Stack.Screen name="FeedingList" component={FeedingListScreen} options={{ title: 'Feeding / Alimentacao' }} />
-      <Stack.Screen name="FeedingForm" component={FeedingFormScreen} options={{ title: 'Add Feeding / Adicionar' }} />
+      <Stack.Screen name="FeedingList" component={FeedingListScreen} options={{ title: t('nav.feeding') }} />
+      <Stack.Screen name="FeedingForm" component={FeedingFormScreen} options={{ title: t('nav.addFeeding') }} />
       {/* Water */}
-      <Stack.Screen name="WaterList" component={WaterListScreen} options={{ title: 'Water / Agua' }} />
-      <Stack.Screen name="WaterForm" component={WaterFormScreen} options={{ title: 'Add Water / Adicionar' }} />
+      <Stack.Screen name="WaterList" component={WaterListScreen} options={{ title: t('nav.water') }} />
+      <Stack.Screen name="WaterForm" component={WaterFormScreen} options={{ title: t('nav.addWater') }} />
       {/* Vaccines */}
-      <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: 'Vaccines / Vacinas' }} />
-      <Stack.Screen name="VaccineForm" component={VaccineFormScreen} options={{ title: 'Add Vaccine / Adicionar' }} />
+      <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: t('nav.vaccines') }} />
+      <Stack.Screen name="VaccineForm" component={VaccineFormScreen} options={{ title: t('nav.addVaccine') }} />
       {/* Medications */}
-      <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ title: 'Medications / Remedios' }} />
-      <Stack.Screen name="MedicationForm" component={MedicationFormScreen} options={{ title: 'Add Medication / Adicionar' }} />
+      <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ title: t('nav.medications') }} />
+      <Stack.Screen name="MedicationForm" component={MedicationFormScreen} options={{ title: t('nav.addMedication') }} />
       {/* Events */}
-      <Stack.Screen name="EventList" component={EventListScreen} options={{ title: 'Events / Eventos' }} />
-      <Stack.Screen name="EventForm" component={EventFormScreen} options={{ title: 'Add Event / Adicionar' }} />
+      <Stack.Screen name="EventList" component={EventListScreen} options={{ title: t('nav.events') }} />
+      <Stack.Screen name="EventForm" component={EventFormScreen} options={{ title: t('nav.addEvent') }} />
       {/* Symptoms */}
-      <Stack.Screen name="SymptomList" component={SymptomListScreen} options={{ title: 'Symptoms / Sintomas' }} />
-      <Stack.Screen name="SymptomForm" component={SymptomFormScreen} options={{ title: 'Add Symptom / Adicionar' }} />
+      <Stack.Screen name="SymptomList" component={SymptomListScreen} options={{ title: t('nav.symptoms') }} />
+      <Stack.Screen name="SymptomForm" component={SymptomFormScreen} options={{ title: t('nav.addSymptom') }} />
     </Stack.Navigator>
   );
 }

@@ -61,17 +61,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }, []);
 
-  // On mount: check backend, restore session, listen for Supabase auth
+  // On mount: check backend (with retry + exponential backoff), restore session, listen for Supabase auth
   useEffect(() => {
     (async () => {
       try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2000);
-        try {
-          await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
-          clearTimeout(timer);
-          setBackendReachable(true);
+        // Retry health check up to 3 times with exponential backoff (3s, 6s, 12s timeout)
+        const MAX_RETRIES = 3;
+        const BASE_TIMEOUT = 3000;
+        let reachable = false;
 
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          const timeout = BASE_TIMEOUT * Math.pow(2, attempt); // 3s, 6s, 12s
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), timeout);
+          try {
+            await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
+            clearTimeout(timer);
+            reachable = true;
+            break;
+          } catch {
+            clearTimeout(timer);
+            // If not last attempt, wait briefly before retrying
+            if (attempt < MAX_RETRIES - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        setBackendReachable(reachable);
+
+        if (reachable) {
           // Try to restore stored session
           const stored = await tokenStorage.get();
           if (stored) {
@@ -83,9 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await tokenStorage.clear();
             }
           }
-        } catch {
-          clearTimeout(timer);
-          setBackendReachable(false);
         }
       } finally {
         setLoading(false);

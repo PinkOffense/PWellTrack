@@ -21,7 +21,7 @@ export function WaterFormScreen({ navigation, route }: Props) {
       return;
     }
     if (dailyGoal && (isNaN(Number(dailyGoal)) || Number(dailyGoal) <= 0)) {
-      Alert.alert(t('common.error'), t('forms.invalidAmount'));
+      Alert.alert(t('common.error'), t('forms.invalidGoal'));
       return;
     }
     setLoading(true);

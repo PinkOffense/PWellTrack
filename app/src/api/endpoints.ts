@@ -56,8 +56,10 @@ export const petsApi = {
 
 // ── Feeding ──
 export const feedingApi = {
-  list: (petId: number): Promise<FeedingLog[]> =>
-    isDemoMode() ? Promise.resolve(DEMO_FEEDING[petId] ?? []) : api.get(`/pets/${petId}/feeding`),
+  list: (petId: number, dateFrom?: string): Promise<FeedingLog[]> =>
+    isDemoMode()
+      ? Promise.resolve(DEMO_FEEDING[petId] ?? [])
+      : api.get(`/pets/${petId}/feeding`, dateFrom ? { date_from: dateFrom } : undefined),
   create: (petId: number, data: FeedingCreate): Promise<FeedingLog> =>
     isDemoMode()
       ? Promise.resolve({ id: Date.now(), pet_id: petId, datetime: new Date().toISOString(), ...data, planned_amount_grams: data.planned_amount_grams ?? null, notes: data.notes ?? null } as FeedingLog)

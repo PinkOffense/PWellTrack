@@ -24,6 +24,12 @@ export default {
     hidePassword: 'Ocultar palavra-passe',
     retry: 'Tentar novamente',
     fillAllFields: 'Por favor preencha todos os campos obrigatórios',
+    noDataYet: 'Sem dados ainda',
+    perDay: '/dia',
+    before: 'antes',
+    hours: 'h',
+    minutes: 'min',
+    confirmDeleteWord: 'ELIMINAR',
   },
   auth: {
     login: 'Entrar',
@@ -80,6 +86,7 @@ export default {
   feeding: {
     title: 'Alimentação',
     foodType: 'Tipo de comida',
+    foodTypePlaceholder: 'Ração, frango...',
     actualGrams: 'Quantidade (g)',
     plannedGrams: 'Quantidade planeada (g)',
     noLogs: 'Sem registos de alimentação',
@@ -96,6 +103,7 @@ export default {
   vaccines: {
     title: 'Vacinas',
     name: 'Nome da vacina',
+    namePlaceholder: 'Raiva, Parvovirose...',
     dateAdministered: 'Data de administração',
     nextDue: 'Próxima dose',
     clinic: 'Clínica',
@@ -108,6 +116,7 @@ export default {
   medications: {
     title: 'Medicação',
     name: 'Nome do medicamento',
+    namePlaceholder: 'Amoxicilina...',
     dosage: 'Dosagem',
     frequency: 'Vezes por dia',
     startDate: 'Data de início',
@@ -142,6 +151,7 @@ export default {
   symptoms: {
     title: 'Sintomas',
     type: 'Tipo de sintoma',
+    typePlaceholder: 'Vómitos, diarreia...',
     severity: 'Gravidade',
     noRecords: 'Sem sintomas registados',
     addSymptom: 'Registar Sintoma',
@@ -166,6 +176,7 @@ export default {
     trends: 'Últimos 7 Dias',
     feedingTrend: 'Alimentação',
     waterTrend: 'Água',
+    perDay: '/dia',
   },
   notifications: {
     medicationReminder: 'Medicação',
@@ -194,6 +205,21 @@ export default {
     weightKg: 'Peso (kg)',
     noRecords: 'Sem registos de peso',
     weightHistory: 'Histórico de Peso',
+  },
+  errors: {
+    pageNotFound: 'Pagina nao encontrada',
+    pageNotFoundDesc: 'A pagina que procura nao existe.',
+    goHome: 'Ir para o inicio',
+    somethingWrong: 'Algo correu mal!',
+    tryAgain: 'Tentar novamente',
+    dismiss: 'Fechar notificacao',
+  },
+  charts: {
+    actual: 'Real (g)',
+    planned: 'Planeado (g)',
+    waterIntake: 'Consumo de agua (ml)',
+    weight: 'Peso (kg)',
+    noData: 'Adicione mais registos para ver tendencias',
   },
   settings: {
     title: 'Definições',

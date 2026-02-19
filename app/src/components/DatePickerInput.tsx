@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, borderRadius, fontSize } from '../theme';
 
 interface DatePickerInputProps {
@@ -13,6 +14,7 @@ interface DatePickerInputProps {
 }
 
 export function DatePickerInput({ label, value, onChange, placeholder, required, mode = 'date' }: DatePickerInputProps) {
+  const { t } = useTranslation();
   const defaultPlaceholder = mode === 'datetime' ? 'YYYY-MM-DDTHH:MM' : 'YYYY-MM-DD';
   const actualPlaceholder = placeholder ?? defaultPlaceholder;
   const [show, setShow] = useState(false);
@@ -82,10 +84,10 @@ export function DatePickerInput({ label, value, onChange, placeholder, required,
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity onPress={() => setShow(false)} style={styles.modalBtn}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t('datePicker.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleConfirm} style={[styles.modalBtn, styles.confirmBtn]}>
-                <Text style={styles.confirmText}>OK</Text>
+                <Text style={styles.confirmText}>{t('datePicker.ok')}</Text>
               </TouchableOpacity>
             </View>
           </View>

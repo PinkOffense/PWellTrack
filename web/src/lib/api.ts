@@ -60,6 +60,8 @@ export async function preparePhoto(file: File): Promise<string> {
         if (!error && data) {
           const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
           if (urlData?.publicUrl) {
+            // ERR-06: Reset broken flag on successful upload
+            _supabaseStorageBroken = false;
             console.info('[Storage] Photo uploaded to Supabase CDN:', urlData.publicUrl);
             return urlData.publicUrl;
           }
@@ -110,11 +112,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const jsonBody = body ? JSON.stringify(body) : undefined;
 
+  // BUG-14: Only retry GET requests to avoid creating duplicates
+  const isSafeMethod = method === 'GET';
+  const maxRetries = isSafeMethod ? MAX_RETRIES : 0;
+
   let lastError: unknown;
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (attempt > 0) {
       const delay = RETRY_DELAYS[attempt - 1] ?? 5_000;
-      console.warn(`[API] Retry ${attempt}/${MAX_RETRIES} for ${method} ${path} after ${delay}ms`);
+      console.warn(`[API] Retry ${attempt}/${maxRetries} for ${method} ${path} after ${delay}ms`);
       await new Promise(r => setTimeout(r, delay));
     }
 
@@ -129,6 +135,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         signal: ctrl.signal,
         mode: 'cors',
       });
+
+      // SEC-05: Handle 401 Unauthorized — clear token and redirect to login
+      if (res.status === 401) {
+        tokenStorage.clear();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        throw new Error('Session expired. Please log in again.');
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
@@ -145,8 +160,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         throw new Error('Request timed out');
       }
 
-      // Retry on network errors (Render cold start can drop connections)
-      if (isNetworkError(e) && attempt < MAX_RETRIES) {
+      // Retry on network errors (Render cold start can drop connections) — only for safe methods
+      if (isNetworkError(e) && attempt < maxRetries) {
         console.warn(`[API] Network error on ${method} ${path}:`, e?.message);
         continue;
       }

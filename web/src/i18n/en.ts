@@ -24,6 +24,12 @@ export default {
     hidePassword: 'Hide password',
     retry: 'Retry',
     fillAllFields: 'Please fill in all required fields',
+    noDataYet: 'No data yet',
+    perDay: '/day',
+    before: 'before',
+    hours: 'h',
+    minutes: 'min',
+    confirmDeleteWord: 'DELETE',
   },
   auth: {
     login: 'Sign In',
@@ -80,6 +86,7 @@ export default {
   feeding: {
     title: 'Feeding',
     foodType: 'Food type',
+    foodTypePlaceholder: 'Kibble, chicken...',
     actualGrams: 'Amount (g)',
     plannedGrams: 'Planned amount (g)',
     noLogs: 'No feeding records',
@@ -96,6 +103,7 @@ export default {
   vaccines: {
     title: 'Vaccines',
     name: 'Vaccine name',
+    namePlaceholder: 'Rabies, Parvovirus...',
     dateAdministered: 'Date administered',
     nextDue: 'Next due date',
     clinic: 'Clinic',
@@ -108,6 +116,7 @@ export default {
   medications: {
     title: 'Medications',
     name: 'Medication name',
+    namePlaceholder: 'Amoxicillin...',
     dosage: 'Dosage',
     frequency: 'Times per day',
     startDate: 'Start date',
@@ -142,6 +151,7 @@ export default {
   symptoms: {
     title: 'Symptoms',
     type: 'Symptom type',
+    typePlaceholder: 'Vomiting, diarrhea...',
     severity: 'Severity',
     noRecords: 'No symptoms recorded',
     addSymptom: 'Log Symptom',
@@ -166,6 +176,7 @@ export default {
     trends: 'Last 7 Days',
     feedingTrend: 'Feeding',
     waterTrend: 'Water',
+    perDay: '/day',
   },
   notifications: {
     medicationReminder: 'Medication',
@@ -194,6 +205,21 @@ export default {
     weightKg: 'Weight (kg)',
     noRecords: 'No weight records',
     weightHistory: 'Weight History',
+  },
+  errors: {
+    pageNotFound: 'Page not found',
+    pageNotFoundDesc: "The page you're looking for doesn't exist.",
+    goHome: 'Go to homepage',
+    somethingWrong: 'Something went wrong!',
+    tryAgain: 'Try again',
+    dismiss: 'Dismiss notification',
+  },
+  charts: {
+    actual: 'Actual (g)',
+    planned: 'Planned (g)',
+    waterIntake: 'Water intake (ml)',
+    weight: 'Weight (kg)',
+    noData: 'Add more records to see trends',
   },
   settings: {
     title: 'Settings',

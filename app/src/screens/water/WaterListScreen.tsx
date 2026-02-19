@@ -20,12 +20,12 @@ export function WaterListScreen({ navigation, route }: Props) {
     try {
       const data = await waterApi.list(petId);
       setLogs(data);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message || t('common.error'));
     } finally {
       setLoading(false);
     }
-  }, [petId]);
+  }, [petId, t]);
 
   const handleDelete = (id: number) => {
     Alert.alert(

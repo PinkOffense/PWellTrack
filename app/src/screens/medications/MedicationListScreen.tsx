@@ -17,9 +17,9 @@ export function MedicationListScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    try { setItems(await medicationsApi.list(petId)); } catch (e) { console.error(e); }
+    try { setItems(await medicationsApi.list(petId)); } catch (e: any) { Alert.alert(t('common.error'), e.message || t('common.error')); }
     finally { setLoading(false); }
-  }, [petId]);
+  }, [petId, t]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
@@ -68,10 +68,10 @@ export function MedicationListScreen({ navigation, route }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}x/day</Text>
+                  <Text style={styles.dosage}>{item.dosage} - {item.frequency_per_day}{t('medications.perDay')}</Text>
                   <Text style={styles.date}>
                     {item.start_date}
-                    {item.end_date ? ` to ${item.end_date}` : ` (${t('medications.ongoing')})`}
+                    {item.end_date ? ` ${t('medications.to')} ${item.end_date}` : ` (${t('medications.ongoing')})`}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>

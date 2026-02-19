@@ -13,8 +13,8 @@ class WaterCreate(BaseModel):
 
 class WaterUpdate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    amount_ml: Optional[float] = None
-    daily_goal_ml: Optional[float] = None
+    amount_ml: Optional[float] = Field(default=None, gt=0)
+    daily_goal_ml: Optional[float] = Field(default=None, gt=0)
 
     model_config = {"populate_by_name": True}
 

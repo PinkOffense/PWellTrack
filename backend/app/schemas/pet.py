@@ -10,24 +10,23 @@ class PetCreate(BaseModel):
     date_of_birth: Optional[date] = None
     sex: Optional[str] = Field(default=None, max_length=20)
     weight_kg: Optional[float] = Field(default=None, gt=0)
-    photo_url: Optional[str] = None
-    notes: Optional[str] = None
+    photo_url: Optional[str] = Field(default=None, max_length=7_000_000)
+    notes: Optional[str] = Field(default=None, max_length=5000)
 
 
 class PetUpdate(BaseModel):
-    name: Optional[str] = None
-    species: Optional[str] = None
-    breed: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    species: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    breed: Optional[str] = Field(default=None, max_length=120)
     date_of_birth: Optional[date] = None
-    sex: Optional[str] = None
-    weight_kg: Optional[float] = None
-    photo_url: Optional[str] = None
-    notes: Optional[str] = None
+    sex: Optional[str] = Field(default=None, max_length=20)
+    weight_kg: Optional[float] = Field(default=None, gt=0)
+    photo_url: Optional[str] = Field(default=None, max_length=7_000_000)
+    notes: Optional[str] = Field(default=None, max_length=5000)
 
 
 class PetOut(BaseModel):
     id: int
-    user_id: int
     name: str
     species: str
     breed: Optional[str]

@@ -41,15 +41,15 @@ function VaccineForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
       {error && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.name')} *</label>
-        <input value={name} onChange={e => setName(e.target.value)} className="input" placeholder="Raiva, Parvovirose..." />
+        <input value={name} onChange={e => setName(e.target.value)} className="input" placeholder={t('vaccines.namePlaceholder')} />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.dateAdministered')} *</label>
-        <input type="date" value={dateAdmin} onChange={e => setDateAdmin(e.target.value)} className="input" />
+        <input type="date" max={new Date().toISOString().slice(0, 10)} value={dateAdmin} onChange={e => setDateAdmin(e.target.value)} className="input" />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.nextDue')}</label>
-        <input type="date" value={nextDue} onChange={e => setNextDue(e.target.value)} className="input" />
+        <input type="date" min={dateAdmin || undefined} value={nextDue} onChange={e => setNextDue(e.target.value)} className="input" />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.clinic')}</label>
@@ -68,7 +68,6 @@ function VaccineForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
 
 export default function VaccinesPage() {
   const { t } = useTranslation();
-  const now = new Date();
   return (
     <RecordPage<Vaccine>
       title={t('vaccines.title')}
@@ -80,6 +79,8 @@ export default function VaccinesPage() {
       updateFn={vaccinesApi.update}
       supportsDateFilter
       renderItem={(item, t) => {
+        // BUG-10: Compute `now` inside render to avoid stale closure
+        const now = new Date();
         const overdue = item.next_due_date && new Date(item.next_due_date) < now;
         return (
           <>

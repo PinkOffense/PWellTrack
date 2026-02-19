@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   KeyboardAvoidingView, Platform, Animated, TextInput,
-  ScrollView, Dimensions,
+  ScrollView, useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,8 +13,6 @@ import { GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'Login'>;
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 // ── Floating paw decoration ──
 function FloatingPaw({ delay, x, y, size, rotation }: {
@@ -98,6 +96,7 @@ function StyledInput({ icon, placeholder, value, onChangeText, secureTextEntry, 
 export function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { login, loginWithGoogle, enterDemoMode, backendReachable, googleAvailable } = useAuth();
+  const { width: SCREEN_W } = useWindowDimensions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -115,6 +114,10 @@ export function LoginScreen({ navigation }: Props) {
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(t('common.oops'), t('auth.fillAllFields'));
+      return;
+    }
+    if (!email.includes('@')) {
+      Alert.alert(t('common.oops'), t('auth.invalidEmail'));
       return;
     }
     setLoading(true);

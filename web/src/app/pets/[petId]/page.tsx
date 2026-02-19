@@ -18,6 +18,7 @@ import { WeightChart } from '@/components/charts/WeightChart';
 import { useToast } from '@/components/Toast';
 import { useConfirm } from '@/components/ConfirmDialog';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
+import { KNOWN_SPECIES } from '@/lib/constants';
 
 const QUICK_ACTIONS = [
   { key: 'feeding', icon: Utensils, color: 'from-orange-400 to-amber-300', href: 'feeding' },
@@ -34,6 +35,10 @@ function petAge(dob?: string): string | null {
   const now = new Date();
   let years = now.getFullYear() - birth.getFullYear();
   let months = now.getMonth() - birth.getMonth();
+  // BUG-09: Account for day of month in age calculation
+  if (now.getDate() < birth.getDate()) {
+    months--;
+  }
   if (months < 0) { years--; months += 12; }
   if (years > 0) return `${years}a ${months}m`;
   if (months > 0) return `${months}m`;
@@ -56,6 +61,13 @@ export default function PetDashboardPage() {
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+
+  // VAL-16: Validate petId is a valid number
+  useEffect(() => {
+    if (isNaN(petId) || petId <= 0) {
+      router.replace('/pets');
+    }
+  }, [petId, router]);
 
   // Edit pet state
   const [showEdit, setShowEdit] = useState(false);
@@ -108,8 +120,6 @@ export default function PetDashboardPage() {
     if (!user || !petId) return;
     loadData();
   }, [user, petId]);
-
-  const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
 
   const openEdit = () => {
     if (!pet) return;
@@ -444,7 +454,7 @@ export default function PetDashboardPage() {
                   <Pill className="w-5 h-5 text-purple-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-txt truncate">{med.name}</p>
-                    <p className="text-xs text-txt-muted">{med.dosage} · {med.frequency_per_day}x/{t('dashboard.entries')}</p>
+                    <p className="text-xs text-txt-muted">{med.dosage} · {med.frequency_per_day}x{t('dashboard.perDay')}</p>
                   </div>
                 </div>
               ))}
@@ -527,7 +537,7 @@ export default function PetDashboardPage() {
           </form>
         </Modal>
       </main>
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoUpload} />
     </>
   );
 }

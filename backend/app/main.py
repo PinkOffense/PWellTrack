@@ -29,6 +29,12 @@ limiter = Limiter(key_func=get_remote_address)
 _ALLOWED_ORIGINS = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
 _ALLOW_ALL = "*" in _ALLOWED_ORIGINS
 
+if _ALLOW_ALL:
+    logger.warning(
+        "CORS_ORIGINS is set to '*'. This allows any website to make "
+        "authenticated requests. Set explicit origins in production."
+    )
+
 
 def _get_cors_origin(request: Request) -> str | None:
     """Return the origin to reflect in CORS headers, or None if not allowed."""
@@ -53,6 +59,10 @@ async def lifespan(app: FastAPI):
     logger.info("Background reminder loop started")
     yield
     task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
     logger.info("PWellTrack API shutting down")
 
 

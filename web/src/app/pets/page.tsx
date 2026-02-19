@@ -12,8 +12,7 @@ import { Modal } from '@/components/Modal';
 import { PawPrint, Plus, Utensils, Droplets, Pill, Syringe, ChevronRight, Camera, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import type { Pet, PetCreate, PetDashboard, Vaccine } from '@/lib/types';
-
-const KNOWN_SPECIES = ['dog', 'cat', 'exotic'];
+import { KNOWN_SPECIES } from '@/lib/constants';
 
 function getFeedingStatus(d: PetDashboard | null) {
   if (!d) return null;
@@ -64,6 +63,7 @@ export default function PetsPage() {
   const newPetPhotoRef = useRef<HTMLInputElement>(null);
   const customSpeciesRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [photoMenuId, setPhotoMenuId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoTargetRef = useRef<number | null>(null);
@@ -84,6 +84,8 @@ export default function PetsPage() {
     try {
       const list = await petsApi.list();
       setPets(list);
+      // PERF-02: All dashboard + vaccine calls are fired concurrently via Promise.allSettled.
+      // Ideally the backend would provide a /pets/summary endpoint to reduce N*2 calls to 1.
       const results = await Promise.allSettled(
         list.map(async p => {
           const [dash, vax] = await Promise.all([petsApi.today(p.id), vaccinesApi.list(p.id)]);
@@ -120,6 +122,8 @@ export default function PetsPage() {
       sex: keepSpeciesAndSex ? f.sex : '',
     }));
     setNewPetPhoto(null);
+    // BUG-12: Revoke old Object URL to prevent memory leak
+    if (newPetPhotoPreview) URL.revokeObjectURL(newPetPhotoPreview);
     setNewPetPhotoPreview(null);
     setTouched({});
     setFormError('');
@@ -160,7 +164,9 @@ export default function PetsPage() {
       // Include photo in create payload (single request, no separate upload)
       let photoUrl: string | undefined;
       if (newPetPhoto) {
-        try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
+        try { photoUrl = await preparePhoto(newPetPhoto); } catch (photoErr: any) {
+          toast(photoErr.message || t('common.error'), 'error');
+        }
       }
       const petData = {
         name: formData.name.trim(),
@@ -171,7 +177,6 @@ export default function PetsPage() {
         sex: formData.sex || undefined,
       };
       const created = await createPetWithFallback(petData, photoUrl);
-      setPets(prev => [...prev, created]);
       setShowForm(false);
       resetForm();
       loadPets();
@@ -192,7 +197,9 @@ export default function PetsPage() {
     try {
       let photoUrl: string | undefined;
       if (newPetPhoto) {
-        try { photoUrl = await preparePhoto(newPetPhoto); } catch {}
+        try { photoUrl = await preparePhoto(newPetPhoto); } catch (photoErr: any) {
+          toast(photoErr.message || t('common.error'), 'error');
+        }
       }
       const petData = {
         name: formData.name.trim(),
@@ -202,8 +209,7 @@ export default function PetsPage() {
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
       };
-      const created = await createPetWithFallback(petData, photoUrl);
-      setPets(prev => [...prev, created]);
+      await createPetWithFallback(petData, photoUrl);
       resetForm(true);
       loadPets();
       toast(t('pets.petAdded'));
@@ -225,6 +231,7 @@ export default function PetsPage() {
     const petId = photoTargetRef.current;
     if (!file || !petId) return;
     setPhotoError('');
+    setPhotoUploading(true);
     try {
       const photoUrl = await preparePhoto(file);
       const updated = await petsApi.update(petId, { photo_url: photoUrl });
@@ -233,6 +240,8 @@ export default function PetsPage() {
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
       setTimeout(() => setPhotoError(''), 4000);
+    } finally {
+      setPhotoUploading(false);
     }
     e.target.value = '';
     photoTargetRef.current = null;
@@ -457,6 +466,8 @@ export default function PetsPage() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    // BUG-12: Revoke previous Object URL before creating a new one
+                    if (newPetPhotoPreview) URL.revokeObjectURL(newPetPhotoPreview);
                     setNewPetPhoto(file);
                     setNewPetPhotoPreview(URL.createObjectURL(file));
                   }
@@ -606,7 +617,7 @@ export default function PetsPage() {
           </form>
         </Modal>
       </main>
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
     </>
   );
 }

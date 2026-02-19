@@ -22,6 +22,7 @@ export default function SettingsPage() {
   // Photo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Password form
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -64,12 +65,15 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoError('');
+    setPhotoUploading(true);
     try {
       await authApi.uploadPhoto(file);
       refreshUser?.();
       toast(t('common.saved'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
+    } finally {
+      setPhotoUploading(false);
     }
     e.target.value = '';
   };
@@ -90,6 +94,12 @@ export default function SettingsPage() {
     e.preventDefault();
     setPwError('');
     setPwSuccess(false);
+
+    // VAL-11: Validate current password is not empty
+    if (!currentPw.trim()) {
+      setPwError(t('common.fillAllFields'));
+      return;
+    }
 
     if (newPw.length < 8) {
       setPwError(t('auth.passwordMin'));
@@ -122,7 +132,8 @@ export default function SettingsPage() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   const handleDeleteAccount = async () => {
-    if (deleteText.toUpperCase() !== 'DELETE') return;
+    // UX-10: Use i18n for the confirmation word
+    if (deleteText.toUpperCase() !== t('common.confirmDeleteWord').toUpperCase()) return;
     setDeleting(true);
     try {
       await authApi.deleteAccount();
@@ -159,9 +170,13 @@ export default function SettingsPage() {
                 )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer"
+                  disabled={photoUploading}
+                  className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer disabled:cursor-wait"
                 >
-                  <Camera className="w-5 h-5 text-white drop-shadow" />
+                  {photoUploading
+                    ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Camera className="w-5 h-5 text-white drop-shadow" />
+                  }
                 </button>
               </div>
               <div className="flex-1 min-w-0">
@@ -188,7 +203,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadPhoto} />
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadPhoto} />
             {photoError && (
               <div className="mt-3 bg-red-50/80 border border-red-100 text-red-500 px-3.5 py-2.5 rounded-2xl text-sm font-medium">
                 {photoError}
@@ -321,7 +336,7 @@ export default function SettingsPage() {
                 value={deleteText}
                 onChange={e => setDeleteText(e.target.value)}
                 className="input"
-                placeholder="DELETE"
+                placeholder={t('common.confirmDeleteWord')}
               />
             </div>
             <div className="flex gap-3">
@@ -330,7 +345,7 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleteText.toUpperCase() !== 'DELETE' || deleting}
+                disabled={deleteText.toUpperCase() !== t('common.confirmDeleteWord').toUpperCase() || deleting}
                 className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white transition-all bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {deleting ? t('common.loading') : t('profile.confirmDelete')}

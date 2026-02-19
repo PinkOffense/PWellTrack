@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BarChart } from 'react-native-chart-kit';
@@ -11,8 +11,6 @@ import { ScreenContainer, Card, ProgressRing, EmptyState } from '../../component
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'PetDashboard'>;
-
-const chartWidth = Dimensions.get('window').width - 64;
 
 const chartConfig = {
   backgroundColor: '#fff',
@@ -87,17 +85,24 @@ const VACCINE_STATUS_CONFIG: Record<VaccineStatus, { icon: keyof typeof Ionicons
 export function PetDashboardScreen({ navigation, route }: Props) {
   const { petId, petName } = route.params as { petId: number; petName: string };
   const { t } = useTranslation();
+  const { width: windowWidth } = useWindowDimensions();
+  const chartWidth = windowWidth - 64;
   const [dashboard, setDashboard] = useState<PetDashboard | null>(null);
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [feedingLogs, setFeedingLogs] = useState<FeedingLog[]>([]);
 
-  const fetch = useCallback(async () => {
+  const loadDashboard = useCallback(async () => {
     try {
+      // PERF-05: Only fetch last 7 days of feeding logs for the chart
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const dateFrom = sevenDaysAgo.toISOString().slice(0, 10);
+
       const [data, logs, vaxes] = await Promise.all([
         petsApi.today(petId),
-        feedingApi.list(petId),
+        feedingApi.list(petId, dateFrom),
         vaccinesApi.list(petId),
       ]);
       setDashboard(data);
@@ -111,7 +116,7 @@ export function PetDashboardScreen({ navigation, route }: Props) {
     }
   }, [petId]);
 
-  useFocusEffect(useCallback(() => { fetch(); }, [fetch]));
+  useFocusEffect(useCallback(() => { loadDashboard(); }, [loadDashboard]));
 
   const quickActions: QuickAction[] = [
     { label: t('dashboard.feeding'), icon: 'restaurant', screen: 'FeedingList', gradient: ['#FF9F43', '#FFBE76'] },
@@ -136,7 +141,7 @@ export function PetDashboardScreen({ navigation, route }: Props) {
   const vaccineCfg = VACCINE_STATUS_CONFIG[vaccineInfo.status];
 
   return (
-    <ScreenContainer refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetch(); }}>
+    <ScreenContainer refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDashboard(); }}>
       {/* Pet header */}
       <LinearGradient
         colors={[...colors.primaryGradient]}
