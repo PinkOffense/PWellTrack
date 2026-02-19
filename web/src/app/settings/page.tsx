@@ -170,9 +170,13 @@ export default function SettingsPage() {
                 )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer"
+                  disabled={photoUploading}
+                  className="absolute inset-0 rounded-2xl bg-black/0 hover:bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 cursor-pointer disabled:cursor-wait"
                 >
-                  <Camera className="w-5 h-5 text-white drop-shadow" />
+                  {photoUploading
+                    ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Camera className="w-5 h-5 text-white drop-shadow" />
+                  }
                 </button>
               </div>
               <div className="flex-1 min-w-0">
