@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { eventsApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
+import { scheduleEventReminder } from '../../utils/notifications';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'EventForm'>;
@@ -25,6 +26,7 @@ export function EventFormScreen({ navigation, route }: Props) {
   const [duration, setDuration] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
+  const [reminder, setReminder] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -39,14 +41,34 @@ export function EventFormScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       const datetimeValue = datetimeStart.length === 10 ? `${datetimeStart}T00:00:00` : datetimeStart;
-      await eventsApi.create(petId, {
+      const reminderMinutes = reminder ? parseInt(reminder, 10) : undefined;
+      const created = await eventsApi.create(petId, {
         title,
         type,
         datetime_start: datetimeValue,
         duration_minutes: duration ? parseInt(duration, 10) : undefined,
         location: location || undefined,
         notes: notes || undefined,
+        reminder_minutes_before: reminderMinutes,
       });
+
+      // Schedule a local notification if reminder is set
+      if (reminderMinutes && reminderMinutes > 0) {
+        const eventDate = new Date(datetimeValue);
+        const triggerDate = new Date(eventDate.getTime() - reminderMinutes * 60 * 1000);
+        try {
+          await scheduleEventReminder(
+            created.id,
+            t('notifications.eventReminder'),
+            `${title} - ${new Date(datetimeValue).toLocaleString()}`,
+            triggerDate,
+          );
+        } catch (notifErr) {
+          // Non-critical: don't block save if notification scheduling fails
+          console.warn('Failed to schedule event reminder:', notifErr);
+        }
+      }
+
       Alert.alert(t('common.success'), t('forms.eventSaved'));
       navigation.goBack();
     } catch (e: any) {

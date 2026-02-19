@@ -5,20 +5,20 @@ from pydantic import BaseModel, Field
 
 class FeedingCreate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    food_type: str
+    food_type: str = Field(min_length=1, max_length=120)
     planned_amount_grams: Optional[float] = Field(default=None, ge=0)
     actual_amount_grams: float = Field(ge=0)
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 
 
 class FeedingUpdate(BaseModel):
     datetime_: Optional[datetime] = Field(alias="datetime", default=None)
-    food_type: Optional[str] = None
-    planned_amount_grams: Optional[float] = None
-    actual_amount_grams: Optional[float] = None
-    notes: Optional[str] = None
+    food_type: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    planned_amount_grams: Optional[float] = Field(default=None, ge=0)
+    actual_amount_grams: Optional[float] = Field(default=None, ge=0)
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
     model_config = {"populate_by_name": True}
 

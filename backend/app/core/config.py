@@ -1,15 +1,22 @@
+import logging
+import sys
+
 from pydantic_settings import BaseSettings
+
+_logger = logging.getLogger("pwelltrack.config")
+
+_INSECURE_SECRET = "change-me-in-production-use-a-real-secret"
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "PWellTrack API"
     DATABASE_URL: str = "sqlite+aiosqlite:///./pwelltrack.db"
-    SECRET_KEY: str = "change-me-in-production-use-a-real-secret"
+    SECRET_KEY: str = _INSECURE_SECRET
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
-    SUPABASE_URL: str = "https://bbrlzpxctxwqclwudnuj.supabase.co"
+    SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
-    CORS_ORIGINS: str = "*"
+    CORS_ORIGINS: str = "https://p-well-track.vercel.app,http://localhost:3000"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
@@ -30,5 +37,15 @@ class Settings(BaseSettings):
         """Check if using PostgreSQL (Supabase/production) vs SQLite (dev)."""
         return "postgresql" in self.DATABASE_URL or "postgres://" in self.DATABASE_URL
 
+    def validate_security(self) -> None:
+        """Reject insecure default secret key in production."""
+        if self.is_postgres and self.SECRET_KEY == _INSECURE_SECRET:
+            _logger.critical(
+                "FATAL: SECRET_KEY is set to the insecure default. "
+                "Set a strong SECRET_KEY environment variable in production."
+            )
+            sys.exit(1)
+
 
 settings = Settings()
+settings.validate_security()

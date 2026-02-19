@@ -1,9 +1,11 @@
 """WebSocket-based real-time notification system for feeding and medication reminders."""
 
 import asyncio
+import json
 import logging
 from datetime import date, datetime, time, timezone
 from typing import Dict, Set
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy import select
@@ -64,7 +66,7 @@ _sent_today: Dict[str, Set[str]] = {}
 
 
 def _today_key() -> str:
-    return date.today().isoformat()
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def _mark_sent(user_id: int, notif_type: str, ref_id: int, time_slot: str):
@@ -83,14 +85,38 @@ def _was_sent(user_id: int, notif_type: str, ref_id: int, time_slot: str) -> boo
 # ── WebSocket Endpoint ──────────────────────────────────────────────────
 
 @router.websocket("/ws/notifications")
-async def websocket_notifications(ws: WebSocket, token: str = Query(...)):
-    """Real-time notification channel. Connect with ?token=<jwt>."""
-    try:
-        payload = _decode_jwt(token)
-        user_id = int(payload["sub"])
-    except Exception:
-        await ws.close(code=4001, reason="Invalid token")
-        return
+async def websocket_notifications(ws: WebSocket, token: str = Query(default="")):
+    """Real-time notification channel.
+
+    Supports two auth methods:
+    1. Query param: ?token=<jwt>  (legacy, for backwards compat)
+    2. First message: {"type": "auth", "token": "<jwt>"}  (preferred)
+    """
+    user_id: int | None = None
+
+    # Try query param auth first (legacy support)
+    if token:
+        try:
+            payload = _decode_jwt(token)
+            user_id = int(payload["sub"])
+        except Exception:
+            await ws.close(code=4001, reason="Invalid token")
+            return
+    else:
+        # Accept connection and wait for auth message
+        await ws.accept()
+        try:
+            raw = await asyncio.wait_for(ws.receive_text(), timeout=10.0)
+            msg = json.loads(raw)
+            if msg.get("type") == "auth" and msg.get("token"):
+                payload = _decode_jwt(msg["token"])
+                user_id = int(payload["sub"])
+            else:
+                await ws.close(code=4001, reason="Expected auth message")
+                return
+        except Exception:
+            await ws.close(code=4001, reason="Auth failed")
+            return
 
     async with async_session() as db:
         user = await db.get(User, user_id)
@@ -98,7 +124,13 @@ async def websocket_notifications(ws: WebSocket, token: str = Query(...)):
             await ws.close(code=4001, reason="User not found")
             return
 
-    await manager.connect(user_id, ws)
+    if not token:
+        # Already accepted above for message-based auth
+        await ws.send_json({"type": "auth_ok"})
+        manager._connections.setdefault(user_id, set()).add(ws)
+    else:
+        await manager.connect(user_id, ws)
+
     try:
         while True:
             data = await ws.receive_text()
@@ -118,7 +150,7 @@ async def reminder_loop():
         try:
             await _check_reminders()
         except Exception as e:
-            logger.error(f"Reminder check failed: {e}")
+            logger.error("Reminder check failed: %s", e)
         await asyncio.sleep(60)
 
 
@@ -138,21 +170,33 @@ async def _check_reminders():
     if not connected:
         return
 
-    now = datetime.now(timezone.utc)
-    current_time = now.strftime("%H:%M")
-    today = date.today()
-    today_start = datetime.combine(today, time.min).replace(tzinfo=timezone.utc)
-    today_end = datetime.combine(today, time.max).replace(tzinfo=timezone.utc)
+    now_utc = datetime.now(timezone.utc)
+    today_utc = now_utc.date()
+    today_start = datetime.combine(today_utc, time.min, tzinfo=timezone.utc)
+    today_end = datetime.combine(today_utc, time.max, tzinfo=timezone.utc)
 
     async with async_session() as db:
         for user_id in connected:
+            # Get user timezone
+            user = await db.get(User, user_id)
+            if not user:
+                continue
+            try:
+                user_tz = ZoneInfo(user.timezone)
+            except Exception:
+                user_tz = timezone.utc
+
+            user_now = now_utc.astimezone(user_tz)
+            current_time = user_now.strftime("%H:%M")
+            user_today = user_now.date()
+
             pets_result = await db.execute(
                 select(Pet).where(Pet.user_id == user_id)
             )
             pets = pets_result.scalars().all()
 
             for pet in pets:
-                await _check_medications(db, user_id, pet, today, current_time)
+                await _check_medications(db, user_id, pet, user_today, current_time)
                 await _check_feeding(db, user_id, pet, today_start, today_end, current_time)
 
 

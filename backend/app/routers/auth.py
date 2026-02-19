@@ -12,11 +12,18 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest, PasswordChange
 
-from pydantic import BaseModel as _BaseModel
+from pydantic import BaseModel as _BaseModel, Field
+from typing import Optional
 
 
 class _PhotoData(_BaseModel):
     photo_data: str
+
+
+class _ProfileUpdate(_BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    timezone: Optional[str] = Field(default=None, min_length=1, max_length=60)
+
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -125,6 +132,24 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
     return TokenResponse(access_token=token, user=UserOut.model_validate(current_user))
 
 
+# ── Profile update ────────────────────────────────────────────────────────
+
+@router.put("/profile", response_model=UserOut)
+async def update_profile(
+    data: _ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update user profile (name, timezone)."""
+    if data.name is not None:
+        current_user.name = data.name
+    if data.timezone is not None:
+        current_user.timezone = data.timezone
+    await db.commit()
+    await db.refresh(current_user)
+    return UserOut.model_validate(current_user)
+
+
 # ── Profile photo ────────────────────────────────────────────────────────
 
 @router.put("/photo", response_model=UserOut)
@@ -178,6 +203,10 @@ async def change_password(
 
 
 # ── Delete account ───────────────────────────────────────────────────────
+
+class _DeleteConfirm(_BaseModel):
+    password: Optional[str] = None
+
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(

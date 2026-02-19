@@ -24,6 +24,12 @@ export default {
     hidePassword: 'Hide password',
     retry: 'Retry',
     fillAllFields: 'Please fill in all required fields',
+    noDataYet: 'No data yet',
+    perDay: '/day',
+    before: 'before',
+    hours: 'h',
+    minutes: 'min',
+    confirmDeleteWord: 'DELETE',
   },
   auth: {
     login: 'Sign In',
@@ -166,6 +172,7 @@ export default {
     trends: 'Last 7 Days',
     feedingTrend: 'Feeding',
     waterTrend: 'Water',
+    perDay: '/day',
   },
   notifications: {
     medicationReminder: 'Medication',
@@ -194,6 +201,21 @@ export default {
     weightKg: 'Weight (kg)',
     noRecords: 'No weight records',
     weightHistory: 'Weight History',
+  },
+  errors: {
+    pageNotFound: 'Page not found',
+    pageNotFoundDesc: "The page you're looking for doesn't exist.",
+    goHome: 'Go to homepage',
+    somethingWrong: 'Something went wrong!',
+    tryAgain: 'Try again',
+    dismiss: 'Dismiss notification',
+  },
+  charts: {
+    actual: 'Actual (g)',
+    planned: 'Planned (g)',
+    waterIntake: 'Water intake (ml)',
+    weight: 'Weight (kg)',
+    noData: 'Add more records to see trends',
   },
   settings: {
     title: 'Settings',

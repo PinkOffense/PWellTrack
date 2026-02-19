@@ -14,6 +14,7 @@ interface Props {
 export function FeedingChart({ petId }: Props) {
   const { t } = useTranslation();
   const [data, setData] = useState<{ day: string; actual: number; planned: number }[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -38,10 +39,21 @@ export function FeedingChart({ petId }: Props) {
         }
       }
       setData(Object.entries(days).map(([day, v]) => ({ day, ...v })));
-    }).catch(() => {});
+      setLoaded(true);
+    }).catch(() => { setLoaded(true); });
   }, [petId]);
 
-  if (data.length === 0) return null;
+  // UX-05/06: Show message when no data instead of disappearing
+  if (loaded && data.every(d => d.actual === 0 && d.planned === 0)) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold text-txt-secondary mb-2">{t('dashboard.feedingTrend')}</h3>
+        <p className="text-sm text-txt-muted py-8 text-center">{t('charts.noData')}</p>
+      </div>
+    );
+  }
+
+  if (!loaded) return null;
 
   return (
     <div>
@@ -52,8 +64,8 @@ export function FeedingChart({ petId }: Props) {
           <XAxis dataKey="day" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 11 }} width={35} />
           <Tooltip />
-          <Bar dataKey="actual" fill="#f97316" radius={[4, 4, 0, 0]} name="Actual (g)" />
-          <Bar dataKey="planned" fill="#fcd34d" radius={[4, 4, 0, 0]} name="Planned (g)" />
+          <Bar dataKey="actual" fill="#f97316" radius={[4, 4, 0, 0]} name={t('charts.actual')} />
+          <Bar dataKey="planned" fill="#fcd34d" radius={[4, 4, 0, 0]} name={t('charts.planned')} />
         </BarChart>
       </ResponsiveContainer>
     </div>

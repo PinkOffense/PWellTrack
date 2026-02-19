@@ -118,6 +118,10 @@ export function RegisterScreen({ navigation }: Props) {
       Alert.alert(t('common.oops'), t('auth.fillAllFields'));
       return;
     }
+    if (!email.includes('@')) {
+      Alert.alert(t('common.oops'), t('auth.invalidEmail'));
+      return;
+    }
     if (password.length < 6) {
       Alert.alert(t('common.oops'), t('auth.passwordMin'));
       return;

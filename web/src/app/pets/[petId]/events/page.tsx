@@ -121,8 +121,9 @@ export default function EventsPage() {
           {item.reminder_minutes_before && (
             <p className="text-xs text-purple-600 mt-0.5">
               {item.reminder_minutes_before >= 1440 ? t('events.reminder1day')
-                : item.reminder_minutes_before >= 60 ? `${item.reminder_minutes_before / 60}h antes`
-                : `${item.reminder_minutes_before} min antes`}
+                : item.reminder_minutes_before >= 60
+                  ? `${Math.floor(item.reminder_minutes_before / 60)}${t('common.hours')}${item.reminder_minutes_before % 60 > 0 ? ` ${item.reminder_minutes_before % 60}${t('common.minutes')}` : ''} ${t('common.before')}`
+                : `${item.reminder_minutes_before} ${t('common.minutes')} ${t('common.before')}`}
             </p>
           )}
         </>

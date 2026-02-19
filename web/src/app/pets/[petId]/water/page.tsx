@@ -17,6 +17,8 @@ function WaterForm({ petId, t, onSave, editingItem }: { petId: number; t: any; o
     e.preventDefault();
     setError('');
     if (!amount.trim()) { setError(t('common.fillAllFields')); return; }
+    // VAL-07: NaN check before submitting numeric values
+    if (isNaN(Number(amount)) || (goal && isNaN(Number(goal)))) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = { amount_ml: Number(amount), daily_goal_ml: goal ? Number(goal) : undefined };
@@ -57,10 +59,10 @@ export default function WaterPage() {
       deleteFn={waterApi.delete}
       updateFn={waterApi.update}
       supportsDateFilter
-      renderItem={(item) => (
+      renderItem={(item, t) => (
         <>
           <p className="font-semibold text-txt text-blue-600">{item.amount_ml} ml</p>
-          {item.daily_goal_ml && <p className="text-xs text-txt-muted">Meta: {item.daily_goal_ml} ml</p>}
+          {item.daily_goal_ml && <p className="text-xs text-txt-muted">{t('water.dailyGoal')}: {item.daily_goal_ml} ml</p>}
           <p className="text-xs text-txt-muted">{new Date(item.datetime).toLocaleString()}</p>
         </>
       )}

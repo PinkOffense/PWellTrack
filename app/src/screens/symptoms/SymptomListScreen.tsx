@@ -29,9 +29,9 @@ export function SymptomListScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    try { setItems(await symptomsApi.list(petId)); } catch (e) { console.error(e); }
+    try { setItems(await symptomsApi.list(petId)); } catch (e: any) { Alert.alert(t('common.error'), e.message || t('common.error')); }
     finally { setLoading(false); }
-  }, [petId]);
+  }, [petId, t]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 

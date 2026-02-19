@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import React, { useCallback, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -67,7 +67,15 @@ export function PetListScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchPets = useCallback(async () => {
+  const lastFetchTime = useRef<number>(0);
+
+  const fetchPets = useCallback(async (force = false) => {
+    // PERF-08: Debounce - skip refetch if data was loaded less than 5s ago
+    const now = Date.now();
+    if (!force && now - lastFetchTime.current < 5000 && pets.length > 0) {
+      return;
+    }
+    lastFetchTime.current = now;
     try {
       const data = await petsApi.list();
       setPets(data);
@@ -108,7 +116,7 @@ export function PetListScreen({ navigation }: Props) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchPets();
+    fetchPets(true);
   };
 
   if (loading) {
@@ -154,6 +162,14 @@ export function PetListScreen({ navigation }: Props) {
           keyExtractor={(p) => String(p.id)}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
           renderItem={({ item }) => {
             const fb = item.feedingStatus ? FEEDING_BADGE[item.feedingStatus] : null;
             const vb = item.vaccineStatus ? VACCINE_BADGE[item.vaccineStatus] : null;
@@ -165,7 +181,7 @@ export function PetListScreen({ navigation }: Props) {
               >
                 <Card style={styles.petCard}>
                   <View style={styles.petRow}>
-                    <PetAvatar name={item.name} species={item.species} size={60} />
+                    <PetAvatar name={item.name} species={item.species} size={60} photoUrl={item.photo_url} />
                     <View style={styles.petInfo}>
                       <Text style={styles.petName}>{item.name}</Text>
                       <Text style={styles.petSpecies}>

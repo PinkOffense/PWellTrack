@@ -66,11 +66,11 @@ function MedicationForm({ petId, t, onSave, editingItem }: { petId: number; t: a
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm font-medium text-txt-secondary block mb-1">{t('medications.startDate')} *</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="input" />
+          <input type="date" max={endDate || undefined} value={startDate} onChange={e => setStartDate(e.target.value)} className="input" />
         </div>
         <div>
           <label className="text-sm font-medium text-txt-secondary block mb-1">{t('medications.endDate')}</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="input" />
+          <input type="date" min={startDate || undefined} value={endDate} onChange={e => setEndDate(e.target.value)} className="input" />
         </div>
       </div>
       <div>
@@ -125,7 +125,7 @@ export default function MedicationsPage() {
               <span className="font-semibold text-txt">{item.name}</span>
               {ongoing && <span className="badge-green">{t('medications.ongoing')}</span>}
             </div>
-            <p className="text-sm text-txt-secondary">{item.dosage} · {item.frequency_per_day}x/dia</p>
+            <p className="text-sm text-txt-secondary">{item.dosage} · {item.frequency_per_day}x{t('common.perDay')}</p>
             <p className="text-xs text-txt-muted">
               {new Date(item.start_date).toLocaleDateString()}
               {item.end_date && ` → ${new Date(item.end_date).toLocaleDateString()}`}

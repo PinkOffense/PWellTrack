@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, TouchableOpacity, Image } from 'react-na
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { petsApi, PetCreate } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
@@ -82,14 +83,25 @@ export function PetFormScreen({ navigation, route }: Props) {
         weight_kg: weightKg ? parseFloat(weightKg) : undefined,
         notes: notes || undefined,
       };
+      // If we have a new photo, convert to base64 and include in the data
+      if (photoUri && photoUri !== originalPhotoUrl) {
+        let base64Uri = photoUri;
+        if (!photoUri.startsWith('data:')) {
+          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const ext = (photoUri.split('.').pop() || 'jpeg').toLowerCase();
+          const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+          base64Uri = `data:${mimeType};base64,${base64}`;
+        }
+        (data as any).photo_url = base64Uri;
+      }
+
       let savedPet;
       if (petId) {
         savedPet = await petsApi.update(petId, data);
       } else {
         savedPet = await petsApi.create(data);
-      }
-      if (photoUri && savedPet?.id && photoUri !== originalPhotoUrl) {
-        await petsApi.uploadPhoto(savedPet.id, photoUri);
       }
       Alert.alert(t('common.success'), t('forms.petSaved'));
       navigation.goBack();

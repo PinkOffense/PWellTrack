@@ -22,11 +22,12 @@ const speciesColor: Record<string, string> = {
   exotic: colors.exotic,
 };
 
-export function PetAvatar({ name, species, size = 56, photoUrl }: Props) {
+export function PetAvatar({ species, size = 56, photoUrl }: Props) {
   const bg = speciesColor[species] ?? colors.primary;
   const icon = speciesIcon[species] ?? 'paw';
+  const [photoError, setPhotoError] = React.useState(false);
 
-  if (photoUrl) {
+  if (photoUrl && !photoError) {
     return (
       <Image
         source={{ uri: photoUrl }}
@@ -35,6 +36,7 @@ export function PetAvatar({ name, species, size = 56, photoUrl }: Props) {
           height: size,
           borderRadius: size / 2,
         }}
+        onError={() => setPhotoError(true)}
       />
     );
   }

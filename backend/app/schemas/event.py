@@ -1,26 +1,26 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EventCreate(BaseModel):
-    type: str
-    title: str
+    type: str = Field(min_length=1, max_length=50)
+    title: str = Field(min_length=1, max_length=200)
     datetime_start: datetime
-    duration_minutes: Optional[int] = None
-    location: Optional[str] = None
-    notes: Optional[str] = None
-    reminder_minutes_before: Optional[int] = None
+    duration_minutes: Optional[int] = Field(default=None, ge=0)
+    location: Optional[str] = Field(default=None, max_length=300)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    reminder_minutes_before: Optional[int] = Field(default=None, ge=0)
 
 
 class EventUpdate(BaseModel):
-    type: Optional[str] = None
-    title: Optional[str] = None
+    type: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     datetime_start: Optional[datetime] = None
-    duration_minutes: Optional[int] = None
-    location: Optional[str] = None
-    notes: Optional[str] = None
-    reminder_minutes_before: Optional[int] = None
+    duration_minutes: Optional[int] = Field(default=None, ge=0)
+    location: Optional[str] = Field(default=None, max_length=300)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    reminder_minutes_before: Optional[int] = Field(default=None, ge=0)
 
 
 class EventOut(BaseModel):

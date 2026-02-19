@@ -19,6 +19,8 @@ function FeedingForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
     e.preventDefault();
     setError('');
     if (!foodType.trim() || !actual.trim()) { setError(t('common.fillAllFields')); return; }
+    // VAL-07: NaN check before submitting numeric values
+    if (isNaN(Number(actual)) || (planned && isNaN(Number(planned)))) { setError(t('common.fillAllFields')); return; }
     setSaving(true);
     try {
       const payload = {

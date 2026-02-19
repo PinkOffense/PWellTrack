@@ -42,6 +42,13 @@ export function RecordPage<T extends { id: number }>({
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
+  // VAL-16: Validate petId is a valid number
+  useEffect(() => {
+    if (isNaN(petId) || petId <= 0) {
+      router.replace('/pets');
+    }
+  }, [petId, router]);
+
   const [pet, setPet] = useState<Pet | null>(null);
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,11 +161,11 @@ export function RecordPage<T extends { id: number }>({
           <div className="flex gap-3 mb-4">
             <div className="flex-1">
               <label className="text-xs text-txt-muted block mb-1">{t('common.dateFrom')}</label>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input" />
+              <input type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)} className="input" />
             </div>
             <div className="flex-1">
               <label className="text-xs text-txt-muted block mb-1">{t('common.dateTo')}</label>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input" />
+              <input type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} className="input" />
             </div>
             {(dateFrom || dateTo) && (
               <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="self-end p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">

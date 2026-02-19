@@ -24,6 +24,12 @@ export default {
     hidePassword: 'Ocultar palavra-passe',
     retry: 'Tentar novamente',
     fillAllFields: 'Por favor preencha todos os campos obrigatórios',
+    noDataYet: 'Sem dados ainda',
+    perDay: '/dia',
+    before: 'antes',
+    hours: 'h',
+    minutes: 'min',
+    confirmDeleteWord: 'ELIMINAR',
   },
   auth: {
     login: 'Entrar',
@@ -166,6 +172,7 @@ export default {
     trends: 'Últimos 7 Dias',
     feedingTrend: 'Alimentação',
     waterTrend: 'Água',
+    perDay: '/dia',
   },
   notifications: {
     medicationReminder: 'Medicação',
@@ -194,6 +201,21 @@ export default {
     weightKg: 'Peso (kg)',
     noRecords: 'Sem registos de peso',
     weightHistory: 'Histórico de Peso',
+  },
+  errors: {
+    pageNotFound: 'Pagina nao encontrada',
+    pageNotFoundDesc: 'A pagina que procura nao existe.',
+    goHome: 'Ir para o inicio',
+    somethingWrong: 'Algo correu mal!',
+    tryAgain: 'Tentar novamente',
+    dismiss: 'Fechar notificacao',
+  },
+  charts: {
+    actual: 'Real (g)',
+    planned: 'Planeado (g)',
+    waterIntake: 'Consumo de agua (ml)',
+    weight: 'Peso (kg)',
+    noData: 'Adicione mais registos para ver tendencias',
   },
   settings: {
     title: 'Definições',

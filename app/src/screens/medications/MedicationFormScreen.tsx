@@ -4,12 +4,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { medicationsApi } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
+import { scheduleMedicationReminder } from '../../utils/notifications';
 import { colors, fontSize, spacing } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'MedicationForm'>;
 
 export function MedicationFormScreen({ navigation, route }: Props) {
-  const { petId } = route.params as { petId: number };
+  const { petId, petName } = route.params as { petId: number; petName?: string };
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
@@ -28,9 +29,17 @@ export function MedicationFormScreen({ navigation, route }: Props) {
       Alert.alert(t('common.error'), t('forms.invalidFrequency'));
       return;
     }
+    if (!Number.isInteger(Number(frequency))) {
+      Alert.alert(t('common.error'), t('forms.frequencyMustBeInteger'));
+      return;
+    }
+    if (endDate && startDate && endDate < startDate) {
+      Alert.alert(t('common.error'), t('forms.endDateBeforeStart'));
+      return;
+    }
     setLoading(true);
     try {
-      await medicationsApi.create(petId, {
+      const created = await medicationsApi.create(petId, {
         name,
         dosage,
         frequency_per_day: parseInt(frequency, 10),
@@ -38,6 +47,19 @@ export function MedicationFormScreen({ navigation, route }: Props) {
         end_date: endDate || undefined,
         notes: notes || undefined,
       });
+
+      // Schedule a daily medication reminder
+      try {
+        await scheduleMedicationReminder(
+          created.id,
+          petName || 'Pet',
+          name,
+          dosage,
+        );
+      } catch (notifErr) {
+        console.warn('Failed to schedule medication reminder:', notifErr);
+      }
+
       Alert.alert(t('common.success'), t('forms.medicationSaved'));
       navigation.goBack();
     } catch (e: any) {
