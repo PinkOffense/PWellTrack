@@ -36,57 +36,19 @@ export const tokenStorage = {
 // ── Helpers ──
 
 /**
- * Compress image and upload to Supabase Storage (CDN).
- * Falls back to base64 data URI if Supabase is not configured or upload fails.
- * Returns a URL string (either https://...supabase... or data:image/...).
+ * Compress image and return as base64 data URI.
+ * Photos are compressed to ≤512px JPEG at 0.7 quality (~30-50 KB),
+ * making base64 data URIs safe to embed in JSON bodies.
  */
-let _supabaseStorageBroken = false; // skip Supabase after first RLS / permission failure
-
 export async function preparePhoto(file: File): Promise<string> {
   const { compressImage } = await import('./photos');
   const compressed = await compressImage(file);
 
-  // Try Supabase Storage first (browser → Supabase CDN, bypasses Render entirely)
-  if (!_supabaseStorageBroken) {
-    try {
-      const { getSupabase } = await import('./supabase');
-      const supabase = getSupabase();
-      if (supabase) {
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-        const { data, error } = await supabase.storage
-          .from('photos')
-          .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
-
-        if (!error && data) {
-          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(data.path);
-          if (urlData?.publicUrl) {
-            // ERR-06: Reset broken flag on successful upload
-            _supabaseStorageBroken = false;
-            console.info('[Storage] Photo uploaded to Supabase CDN:', urlData.publicUrl);
-            return urlData.publicUrl;
-          }
-        }
-        // RLS or permission error — don't retry Supabase for the rest of this session
-        if (error?.message?.includes('row-level security') || error?.message?.includes('policy')) {
-          _supabaseStorageBroken = true;
-          console.warn('[Storage] Supabase Storage has RLS issues, using base64 for this session');
-        } else {
-          console.warn('[Storage] Supabase upload failed:', error?.message);
-        }
-      } else {
-        console.info('[Storage] Supabase not configured, using base64');
-      }
-    } catch (e: any) {
-      console.warn('[Storage] Supabase error:', e?.message);
-    }
-  }
-
-  // Fallback: base64 data URI (sent inside JSON body to backend)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      console.info('[Storage] Using base64 fallback, size:', Math.round(result.length / 1024), 'KB');
+      console.info('[Photo] Compressed to base64, size:', Math.round(result.length / 1024), 'KB');
       resolve(result);
     };
     reader.onerror = () => reject(new Error('Failed to read file'));
