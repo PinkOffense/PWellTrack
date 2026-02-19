@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import i18n from '../i18n';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -28,7 +29,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Pet Reminders',
+      name: i18n.t('notifications.petReminders'),
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
     });
@@ -72,8 +73,8 @@ export async function scheduleMedicationReminder(
   // Schedule a daily reminder
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: `\u{1F48A} ${petName} - Medication`,
-      body: `Time to give ${medicationName} (${dosage})`,
+      title: i18n.t('notifications.medicationTitle', { petName }),
+      body: i18n.t('notifications.medicationBody', { medicationName, dosage }),
       data: { medicationId, type: 'medication_reminder' },
     },
     trigger: {
@@ -102,8 +103,8 @@ export async function scheduleVaccineReminder(
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: `\u{1F489} ${petName} - Vaccine Due`,
-      body: `${vaccineName} is due tomorrow!`,
+      title: i18n.t('notifications.vaccineTitle', { petName }),
+      body: i18n.t('notifications.vaccineBody', { vaccineName }),
       data: { vaccineId, type: 'vaccine_reminder' },
     },
     trigger: {

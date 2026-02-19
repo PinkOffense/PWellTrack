@@ -36,7 +36,7 @@ function SymptomForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
       {error && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('symptoms.type')} *</label>
-        <input value={type} onChange={e => setType(e.target.value)} className="input" placeholder="Vomitos, diarreia..." />
+        <input value={type} onChange={e => setType(e.target.value)} className="input" placeholder={t('symptoms.typePlaceholder')} />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('symptoms.severity')} *</label>

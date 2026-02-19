@@ -22,6 +22,7 @@ export default function SettingsPage() {
   // Photo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Password form
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -64,12 +65,15 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoError('');
+    setPhotoUploading(true);
     try {
       await authApi.uploadPhoto(file);
       refreshUser?.();
       toast(t('common.saved'));
     } catch (err: any) {
       setPhotoError(err.message || t('common.error'));
+    } finally {
+      setPhotoUploading(false);
     }
     e.target.value = '';
   };

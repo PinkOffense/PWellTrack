@@ -116,6 +116,7 @@ export default {
   medications: {
     title: 'Medicação',
     name: 'Nome do medicamento',
+    namePlaceholder: 'Amoxicilina...',
     dosage: 'Dosagem',
     frequency: 'Vezes por dia',
     startDate: 'Data de início',
@@ -150,6 +151,7 @@ export default {
   symptoms: {
     title: 'Sintomas',
     type: 'Tipo de sintoma',
+    typePlaceholder: 'Vómitos, diarreia...',
     severity: 'Gravidade',
     noRecords: 'Sem sintomas registados',
     addSymptom: 'Registar Sintoma',

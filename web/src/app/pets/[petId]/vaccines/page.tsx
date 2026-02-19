@@ -41,7 +41,7 @@ function VaccineForm({ petId, t, onSave, editingItem }: { petId: number; t: any;
       {error && <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.name')} *</label>
-        <input value={name} onChange={e => setName(e.target.value)} className="input" placeholder="Raiva, Parvovirose..." />
+        <input value={name} onChange={e => setName(e.target.value)} className="input" placeholder={t('vaccines.namePlaceholder')} />
       </div>
       <div>
         <label className="text-sm font-medium text-txt-secondary block mb-1">{t('vaccines.dateAdministered')} *</label>

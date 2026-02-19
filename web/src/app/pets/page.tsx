@@ -84,6 +84,8 @@ export default function PetsPage() {
     try {
       const list = await petsApi.list();
       setPets(list);
+      // PERF-02: All dashboard + vaccine calls are fired concurrently via Promise.allSettled.
+      // Ideally the backend would provide a /pets/summary endpoint to reduce N*2 calls to 1.
       const results = await Promise.allSettled(
         list.map(async p => {
           const [dash, vax] = await Promise.all([petsApi.today(p.id), vaccinesApi.list(p.id)]);

@@ -67,23 +67,21 @@ export function useNotifications(enabled: boolean) {
     ws.onmessage = (event) => {
       if (event.data === 'pong') return;
       try {
-        const parsed = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
         // Handle auth confirmation
-        if (parsed.type === 'auth_ok') {
+        if (data.type === 'auth_ok') {
           authenticated = true;
           retryCount.current = 0; // Reset backoff on successful auth
           return;
         }
-        if (parsed.type === 'auth_error') {
+        if (data.type === 'auth_error') {
           console.warn('[WS] Auth failed, closing connection');
           ws.close();
           return;
         }
-      } catch { /* not JSON, continue */ }
-      if (!authenticated) return; // Ignore messages before auth
-      if (event.data === 'pong') return;
-      try {
-        const data = JSON.parse(event.data);
+        // Ignore messages before auth
+        if (!authenticated) return;
+
         const notif: Notification = {
           id: `${data.type}-${data.pet_id}-${data.scheduled_time}-${Date.now()}`,
           type: data.type,
