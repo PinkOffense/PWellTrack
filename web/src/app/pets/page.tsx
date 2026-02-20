@@ -103,7 +103,10 @@ export default function PetsPage() {
       setDashboards(dMap);
       setVaccineData(vMap);
     } catch (err: any) {
-      toast(err.message || t('common.error'), 'error');
+      // Only show error on initial load (not on background refreshes when pets are already loaded)
+      if (pets.length === 0) {
+        toast(err.message || t('common.error'), 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -146,7 +149,7 @@ export default function PetsPage() {
       try {
         return await petsApi.update(created.id, { photo_url: photoUrl });
       } catch {
-        console.warn('[Pets] Photo update also failed, pet created without photo');
+        toast(t('pets.photoUploadFailed'), 'error');
         return created;
       }
     }
@@ -177,9 +180,12 @@ export default function PetsPage() {
         sex: formData.sex || undefined,
       };
       const created = await createPetWithFallback(petData, photoUrl);
+      // Optimistic update: add the new pet to the list immediately
+      setPets(prev => [...prev, created]);
       setShowForm(false);
       resetForm();
-      loadPets();
+      // Refresh full list in background (updates dashboard data)
+      loadPets().catch(() => {});
       toast(t('pets.petAdded'));
     } catch (err: any) {
       setFormError(err.message);
@@ -209,9 +215,10 @@ export default function PetsPage() {
         date_of_birth: formData.date_of_birth || undefined,
         sex: formData.sex || undefined,
       };
-      await createPetWithFallback(petData, photoUrl);
+      const created = await createPetWithFallback(petData, photoUrl);
+      setPets(prev => [...prev, created]);
       resetForm(true);
-      loadPets();
+      loadPets().catch(() => {});
       toast(t('pets.petAdded'));
     } catch (err: any) {
       setFormError(err.message);

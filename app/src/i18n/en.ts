@@ -58,6 +58,7 @@ export default {
     notes: 'Notes',
     photo: 'Photo',
     addPhoto: 'Add Photo',
+    photoUploadFailed: 'Could not save the photo. You can add it later.',
     dog: 'Dog',
     cat: 'Cat',
     exotic: 'Exotic',
