@@ -80,6 +80,7 @@ export default {
     addPhoto: 'Adicionar Foto',
     photoHint: 'JPG, PNG até 5 MB',
     photoUploadFailed: 'Não foi possível guardar a foto. Pode adicioná-la depois.',
+    photoTooLarge: 'A foto é demasiado grande. O tamanho máximo é {{maxMB}} MB. Escolha uma foto mais pequena.',
     optional: 'opcional',
     nameRequired: 'Dê um nome ao seu animal',
     speciesRequired: 'Especifique a espécie',

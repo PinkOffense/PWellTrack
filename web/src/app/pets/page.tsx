@@ -237,6 +237,13 @@ export default function PetsPage() {
     const file = e.target.files?.[0];
     const petId = photoTargetRef.current;
     if (!file || !petId) return;
+    // Validate file size (5 MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast(t('pets.photoTooLarge', { maxMB: 5 }), 'error');
+      e.target.value = '';
+      photoTargetRef.current = null;
+      return;
+    }
     setPhotoError('');
     setPhotoUploading(true);
     try {
@@ -473,6 +480,12 @@ export default function PetsPage() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    // Validate file size (5 MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast(t('pets.photoTooLarge', { maxMB: 5 }), 'error');
+                      e.target.value = '';
+                      return;
+                    }
                     // BUG-12: Revoke previous Object URL before creating a new one
                     if (newPetPhotoPreview) URL.revokeObjectURL(newPetPhotoPreview);
                     setNewPetPhoto(file);

@@ -186,6 +186,12 @@ export default function PetDashboardPage() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Validate file size (5 MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast(t('pets.photoTooLarge', { maxMB: 5 }), 'error');
+      e.target.value = '';
+      return;
+    }
     setPhotoMenuOpen(false);
     try {
       const photoUrl = await preparePhoto(file);
