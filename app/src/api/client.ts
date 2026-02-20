@@ -150,18 +150,26 @@ async function request<T>(method: RequestMethod, path: string, opts?: RequestOpt
  * Upload pet photo as base64 data URI via the update endpoint (JSON body).
  * FormData/multipart uploads fail cross-origin on some platforms,
  * so we send the photo as a base64 data URI in JSON instead.
+ * Images are compressed to 512px JPEG before upload.
  */
 export async function uploadPetPhoto(petId: number, uri: string): Promise<any> {
   let base64Uri = uri;
 
   // If it's already a data URI, use it directly
   if (!uri.startsWith('data:')) {
-    // For native: read the file and convert to base64
-    const { readAsStringAsync, EncodingType } = await import('expo-file-system');
-    const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
-    const ext = (uri.split('.').pop() || 'jpeg').toLowerCase();
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-    base64Uri = `data:${mimeType};base64,${base64}`;
+    // Compress and resize before converting to base64
+    const ImageManipulator = await import('expo-image-manipulator');
+    const FileSystem = await import('expo-file-system');
+
+    const manipulated = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 512, height: 512 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    base64Uri = `data:image/jpeg;base64,${base64}`;
   }
 
   // Send via the update pet endpoint as JSON

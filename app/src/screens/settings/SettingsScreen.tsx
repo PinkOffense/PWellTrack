@@ -2,26 +2,91 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { colors, spacing, fontSize, borderRadius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api';
 import { ScreenContainer } from '../../components';
 import { requestNotificationPermissions, getScheduledNotifications, cancelAllNotifications } from '../../utils/notifications';
+
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
+const PHOTO_MAX_PX = 512;
+const PHOTO_JPEG_QUALITY = 0.7;
 
 const LANGUAGE_STORAGE_KEY = '@pwelltrack_language';
 
 export function SettingsScreen() {
   const { t, i18n } = useTranslation();
-  const { logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
   const [notifsEnabled, setNotifsEnabled] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
+
+  const compressToBase64 = async (uri: string): Promise<string> => {
+    const manipulated = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: PHOTO_MAX_PX, height: PHOTO_MAX_PX } }],
+      { compress: PHOTO_JPEG_QUALITY, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:image/jpeg;base64,${base64}`;
+  };
+
+  const handlePickPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    try {
+      const info = await FileSystem.getInfoAsync(asset.uri);
+      if (info.exists && info.size && info.size > MAX_PHOTO_SIZE_BYTES) {
+        Alert.alert(t('common.error'), t('pets.photoTooLarge', { maxMB: 5 }));
+        return;
+      }
+    } catch { /* proceed anyway */ }
+
+    setPhotoUploading(true);
+    try {
+      const photoData = await compressToBase64(asset.uri);
+      await authApi.uploadPhoto(photoData);
+      await refreshUser();
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoUploading(true);
+    try {
+      await authApi.deletePhoto();
+      await refreshUser();
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -86,6 +151,59 @@ export function SettingsScreen() {
   return (
     <ScreenContainer>
       <Text style={styles.header}>{t('settings.title')}</Text>
+
+      {/* Profile Section */}
+      {user && (
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <View style={styles.profileRow}>
+              <TouchableOpacity onPress={handlePickPhoto} disabled={photoUploading} activeOpacity={0.7}>
+                <View style={styles.avatarContainer}>
+                  {user.photo_url && !photoError ? (
+                    <Image
+                      source={{ uri: user.photo_url }}
+                      style={styles.avatar}
+                      onError={() => setPhotoError(true)}
+                    />
+                  ) : (
+                    <View style={styles.avatarFallback}>
+                      <Text style={styles.avatarInitials}>
+                        {user.name.slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  {photoUploading ? (
+                    <View style={styles.avatarOverlay}>
+                      <ActivityIndicator size="small" color={colors.white} />
+                    </View>
+                  ) : (
+                    <View style={styles.avatarBadge}>
+                      <Ionicons name="camera" size={14} color={colors.white} />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{user.name}</Text>
+                <Text style={styles.profileEmail}>{user.email}</Text>
+                <View style={styles.photoActions}>
+                  <TouchableOpacity onPress={handlePickPhoto} disabled={photoUploading}>
+                    <Text style={styles.photoActionText}>{t('profile.changePhoto')}</Text>
+                  </TouchableOpacity>
+                  {user.photo_url && (
+                    <>
+                      <Text style={styles.photoActionDot}> · </Text>
+                      <TouchableOpacity onPress={handleRemovePhoto} disabled={photoUploading}>
+                        <Text style={styles.photoRemoveText}>{t('profile.removePhoto')}</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Language Section */}
       <View style={styles.section}>
@@ -182,6 +300,86 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: spacing.lg,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  avatarFallback: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    inset: 0,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  profileEmail: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  photoActionText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  photoActionDot: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+  },
+  photoRemoveText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.danger,
   },
   sectionTitle: {
     fontSize: fontSize.md,

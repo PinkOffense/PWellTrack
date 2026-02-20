@@ -235,6 +235,10 @@ export default {
       no_records: 'No vaccines',
     },
   },
+  profile: {
+    changePhoto: 'Change photo',
+    removePhoto: 'Remove photo',
+  },
   settings: {
     title: 'Settings',
     language: 'Language',

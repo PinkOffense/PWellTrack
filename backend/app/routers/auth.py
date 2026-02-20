@@ -186,7 +186,7 @@ async def update_photo_json(
     if not is_url and not is_data_uri:
         raise HTTPException(status_code=400, detail="Invalid photo data")
     if is_data_uri and len(data.photo_data) > 7_000_000:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5 MB")
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is ~5 MB")
     current_user.photo_url = data.photo_data
     await db.commit()
     await db.refresh(current_user)

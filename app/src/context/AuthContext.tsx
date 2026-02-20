@@ -19,6 +19,7 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   enterDemoMode: () => void;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthState>({
   loginWithGoogle: async () => {},
   enterDemoMode: () => {},
   logout: async () => {},
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -229,11 +231,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDemoMode(false);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const me = await authApi.me();
+      setUser(me);
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user, token, loading, demoMode, backendReachable,
       googleAvailable: isSupabaseConfigured && backendReachable,
-      login, register, loginWithGoogle, enterDemoMode, logout,
+      login, register, loginWithGoogle, enterDemoMode, logout, refreshUser,
     }}>
       {children}
     </AuthContext.Provider>
