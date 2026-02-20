@@ -30,6 +30,14 @@ export const authApi = {
     if (!rt) throw new Error('No refresh token');
     return api.post('/auth/refresh', { refresh_token: rt });
   },
+  uploadPhoto: (photoData: string): Promise<User> =>
+    isDemoMode()
+      ? Promise.resolve({ ...DEMO_USER, photo_url: photoData })
+      : api.put('/auth/photo', { photo_data: photoData }),
+  deletePhoto: (): Promise<User> =>
+    isDemoMode()
+      ? Promise.resolve({ ...DEMO_USER, photo_url: undefined })
+      : api.delete('/auth/photo'),
 };
 
 // ── Pets ──

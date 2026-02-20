@@ -6,8 +6,8 @@ import { BarChart } from 'react-native-chart-kit';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { petsApi, feedingApi, vaccinesApi, PetDashboard, FeedingLog, Vaccine } from '../../api';
-import { ScreenContainer, Card, ProgressRing, EmptyState } from '../../components';
+import { petsApi, feedingApi, vaccinesApi, Pet, PetDashboard, FeedingLog, Vaccine } from '../../api';
+import { ScreenContainer, Card, ProgressRing, EmptyState, PetAvatar } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
 
 type Props = NativeStackScreenProps<any, 'PetDashboard'>;
@@ -87,6 +87,7 @@ export function PetDashboardScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
   const chartWidth = windowWidth - 64;
+  const [pet, setPet] = useState<Pet | null>(null);
   const [dashboard, setDashboard] = useState<PetDashboard | null>(null);
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,11 +101,13 @@ export function PetDashboardScreen({ navigation, route }: Props) {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const dateFrom = sevenDaysAgo.toISOString().slice(0, 10);
 
-      const [data, logs, vaxes] = await Promise.all([
+      const [petData, data, logs, vaxes] = await Promise.all([
+        petsApi.get(petId),
         petsApi.today(petId),
         feedingApi.list(petId, dateFrom),
         vaccinesApi.list(petId),
       ]);
+      setPet(petData);
       setDashboard(data);
       setFeedingLogs(logs.slice(-7));
       setVaccines(vaxes);
@@ -149,8 +152,15 @@ export function PetDashboardScreen({ navigation, route }: Props) {
         end={{ x: 1, y: 1 }}
         style={styles.heroCard}
       >
-        <Text style={styles.heroName}>{petName}</Text>
-        <Text style={styles.heroSub}>{t('dashboard.todayOverview')}</Text>
+        <View style={styles.heroRow}>
+          {pet && (
+            <PetAvatar species={pet.species} size={64} photoUrl={pet.photo_url} />
+          )}
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.heroName}>{petName}</Text>
+            <Text style={styles.heroSub}>{t('dashboard.todayOverview')}</Text>
+          </View>
+        </View>
         <TouchableOpacity
           style={styles.editBtn}
           onPress={() => navigation.navigate('PetForm', { petId })}
@@ -490,6 +500,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     position: 'relative',
     overflow: 'hidden',
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  heroTextBlock: {
+    flex: 1,
   },
   heroName: {
     fontSize: fontSize.hero,

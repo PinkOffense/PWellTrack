@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoLoadError, setPhotoLoadError] = useState(false);
 
   // Password form
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -65,6 +66,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoError('');
+    setPhotoLoadError(false);
     setPhotoUploading(true);
     try {
       await authApi.uploadPhoto(file);
@@ -161,8 +163,13 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               {/* Avatar with photo overlay */}
               <div className="relative shrink-0">
-                {user.photo_url ? (
-                  <img src={resolvePhotoUrl(user.photo_url)} alt={user.name} className="w-20 h-20 rounded-2xl object-cover" />
+                {resolvePhotoUrl(user.photo_url) && !photoLoadError ? (
+                  <img
+                    src={resolvePhotoUrl(user.photo_url)}
+                    alt={user.name}
+                    className="w-20 h-20 rounded-2xl object-cover"
+                    onError={() => setPhotoLoadError(true)}
+                  />
                 ) : (
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#B4A5D6] to-[#9B8EC8] flex items-center justify-center text-white text-2xl font-bold">
                     {user.name.slice(0, 2).toUpperCase()}

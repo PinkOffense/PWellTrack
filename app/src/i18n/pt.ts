@@ -235,6 +235,10 @@ export default {
       no_records: 'Sem vacinas',
     },
   },
+  profile: {
+    changePhoto: 'Alterar foto',
+    removePhoto: 'Remover foto',
+  },
   settings: {
     title: 'Definições',
     language: 'Idioma',
