@@ -4,10 +4,15 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { petsApi, PetCreate } from '../../api';
 import { ScreenContainer, Input, GradientButton, DatePickerInput } from '../../components';
 import { colors, fontSize, spacing, borderRadius } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
+
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const PHOTO_MAX_PX = 512;
+const PHOTO_JPEG_QUALITY = 0.7;
 
 type Props = NativeStackScreenProps<any, 'PetForm'>;
 
@@ -59,8 +64,38 @@ export function PetFormScreen({ navigation, route }: Props) {
       quality: 0.7,
     });
     if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      // Check file size before proceeding
+      try {
+        const info = await FileSystem.getInfoAsync(asset.uri);
+        if (info.exists && info.size && info.size > MAX_PHOTO_SIZE_BYTES) {
+          Alert.alert(
+            t('common.error'),
+            t('pets.photoTooLarge', { maxMB: 5 }),
+          );
+          return;
+        }
+      } catch {
+        // If we can't check size, proceed anyway
+      }
+      setPhotoUri(asset.uri);
     }
+  };
+
+  /**
+   * Compress and resize a local image to a base64 data URI.
+   * Resizes to max 512px and converts to JPEG at 0.7 quality (~30-60KB).
+   */
+  const compressToBase64 = async (uri: string): Promise<string> => {
+    const manipulated = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: PHOTO_MAX_PX, height: PHOTO_MAX_PX } }],
+      { compress: PHOTO_JPEG_QUALITY, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    const base64 = await FileSystem.readAsStringAsync(manipulated.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:image/jpeg;base64,${base64}`;
   };
 
   const handleSave = async () => {
@@ -83,25 +118,19 @@ export function PetFormScreen({ navigation, route }: Props) {
         weight_kg: weightKg ? parseFloat(weightKg) : undefined,
         notes: notes || undefined,
       };
-      // If we have a new photo, convert to base64 and include in the data
+      // If we have a new photo, compress and convert to base64
       if (photoUri && photoUri !== originalPhotoUrl) {
-        let base64Uri = photoUri;
-        if (!photoUri.startsWith('data:')) {
-          const base64 = await FileSystem.readAsStringAsync(photoUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          const ext = (photoUri.split('.').pop() || 'jpeg').toLowerCase();
-          const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-          base64Uri = `data:${mimeType};base64,${base64}`;
+        if (photoUri.startsWith('data:')) {
+          (data as any).photo_url = photoUri;
+        } else {
+          (data as any).photo_url = await compressToBase64(photoUri);
         }
-        (data as any).photo_url = base64Uri;
       }
 
-      let savedPet;
       if (petId) {
-        savedPet = await petsApi.update(petId, data);
+        await petsApi.update(petId, data);
       } else {
-        savedPet = await petsApi.create(data);
+        await petsApi.create(data);
       }
       Alert.alert(t('common.success'), t('forms.petSaved'));
       navigation.goBack();

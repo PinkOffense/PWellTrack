@@ -59,6 +59,7 @@ export default {
     photo: 'Photo',
     addPhoto: 'Add Photo',
     photoUploadFailed: 'Could not save the photo. You can add it later.',
+    photoTooLarge: 'Photo is too large. Maximum size is {{maxMB}} MB. Please choose a smaller photo.',
     dog: 'Dog',
     cat: 'Cat',
     exotic: 'Exotic',

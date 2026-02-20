@@ -59,6 +59,7 @@ export default {
     photo: 'Foto',
     addPhoto: 'Adicionar Foto',
     photoUploadFailed: 'Não foi possível guardar a foto. Pode adicioná-la depois.',
+    photoTooLarge: 'A foto é demasiado grande. O tamanho máximo é {{maxMB}} MB. Escolha uma foto mais pequena.',
     dog: 'Cão',
     cat: 'Gato',
     exotic: 'Exótico',
