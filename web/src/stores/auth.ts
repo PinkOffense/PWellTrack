@@ -28,6 +28,47 @@ export const useAuthStore = defineStore('auth', () => {
   const googleAvailable = computed(() => isSupabaseConfigured && backendReachable.value);
 
   async function init() {
+    // Initialize Supabase client FIRST so it starts processing the OAuth
+    // redirect hash fragment while we wait for the backend health check.
+    const sb = isSupabaseConfigured ? getSupabase() : null;
+
+    // Promise that resolves once Supabase reports its initial session
+    // (picks up tokens from the URL hash after Google OAuth redirect).
+    let resolveInitial: (session: import('@supabase/supabase-js').Session | null) => void;
+    const initialSessionReady = sb
+      ? new Promise<import('@supabase/supabase-js').Session | null>((resolve) => {
+          resolveInitial = resolve;
+          setTimeout(() => resolve(null), 5_000); // safety timeout
+        })
+      : Promise.resolve(null);
+
+    // Set up a single listener for all Supabase auth events
+    if (sb) {
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'INITIAL_SESSION') {
+          resolveInitial!(session);
+          return;
+        }
+        // Handle Google sign-in events that happen *after* init (e.g. user
+        // clicks "Login with Google" while already on the login page).
+        if (event === 'SIGNED_IN' && session?.user && !tokenStorage.get()) {
+          const email = session.user.email || '';
+          const name =
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            email.split('@')[0];
+          try {
+            const res = await authApi.google({ email, name, supabase_token: session.access_token });
+            tokenStorage.set(res.access_token);
+            if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
+            user.value = res.user;
+          } catch (e) {
+            console.error('Failed to sync Google user with backend:', e);
+          }
+        }
+      });
+    }
+
     // Try up to 3 times (total ~90s) to accommodate Render free-tier cold starts
     const MAX_WAKE_ATTEMPTS = 3;
     let ok = false;
@@ -62,23 +103,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
-      // Check for existing Supabase session (Google OAuth redirect lands here)
-      if (!user.value) {
-        const sb = getSupabase();
-        if (isSupabaseConfigured && sb) {
+      // Await Supabase initial session (Google OAuth redirect)
+      if (!user.value && sb) {
+        const session = await initialSessionReady;
+        if (session?.user) {
+          const email = session.user.email || '';
+          const name =
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            email.split('@')[0];
           try {
-            const { data } = await sb.auth.getSession();
-            if (data.session?.user) {
-              const email = data.session.user.email || '';
-              const name =
-                data.session.user.user_metadata?.full_name ||
-                data.session.user.user_metadata?.name ||
-                email.split('@')[0];
-              const res = await authApi.google({ email, name, supabase_token: data.session.access_token });
-              tokenStorage.set(res.access_token);
-              if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
-              user.value = res.user;
-            }
+            const res = await authApi.google({ email, name, supabase_token: session.access_token });
+            tokenStorage.set(res.access_token);
+            if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
+            user.value = res.user;
           } catch (e) {
             console.error('Failed to sync Google user with backend:', e);
           }
@@ -86,28 +124,6 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     loading.value = false;
-
-    // Listen for future Supabase auth changes (e.g. token refresh)
-    const sb = getSupabase();
-    if (!isSupabaseConfigured || !sb) return;
-    sb.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        if (tokenStorage.get()) return;
-        const email = session.user.email || '';
-        const name =
-          session.user.user_metadata?.full_name ||
-          session.user.user_metadata?.name ||
-          email.split('@')[0];
-        try {
-          const res = await authApi.google({ email, name, supabase_token: session.access_token });
-          tokenStorage.set(res.access_token);
-          if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
-          user.value = res.user;
-        } catch (e) {
-          console.error('Failed to sync Google user with backend:', e);
-        }
-      }
-    });
   }
 
   async function login(email: string, password: string) {
