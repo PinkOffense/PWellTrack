@@ -173,7 +173,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         throw new Error('Request timed out');
       }
 
-      // Retry on network errors (Render cold start can drop connections) — only for safe methods
+      // Retry on network errors (server restart can drop connections) — only for safe methods
       if (isNetworkError(e) && attempt < maxRetries) {
         console.warn(`[API] Network error on ${method} ${path}:`, e?.message);
         continue;
@@ -304,7 +304,7 @@ export const weightApi = {
 export async function checkBackend(): Promise<boolean> {
   try {
     const ctrl = new AbortController();
-    // 30s timeout accommodates Render free-tier cold starts (~15-20s)
+    // 30s timeout accommodates potential cold starts
     const timer = setTimeout(() => ctrl.abort(), 30_000);
     await fetch(`${API_BASE}/health`, { signal: ctrl.signal, mode: 'cors' });
     clearTimeout(timer);
