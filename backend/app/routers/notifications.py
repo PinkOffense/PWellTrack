@@ -8,7 +8,7 @@ from typing import Dict, Set
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 from app.core.database import async_session
 from app.core.security import _decode_jwt
@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.pet import Pet
 from app.models.medication import Medication
 from app.models.feeding_log import FeedingLog
+from app.models.sent_notification import SentNotification
 
 logger = logging.getLogger(__name__)
 
@@ -60,26 +61,32 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# ── Deduplication ────────────────────────────────────────────────────────
+# ── Persistent Deduplication ─────────────────────────────────────────────
 
-_sent_today: Dict[str, Set[str]] = {}
-
-
-def _today_key() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
-
-
-def _mark_sent(user_id: int, notif_type: str, ref_id: int, time_slot: str):
-    key = _today_key()
-    if key not in _sent_today:
-        _sent_today.clear()
-        _sent_today[key] = set()
-    _sent_today[key].add(f"{user_id}:{notif_type}:{ref_id}:{time_slot}")
+async def _mark_sent(db, user_id: int, notif_type: str, ref_id: int, time_slot: str):
+    key = f"{notif_type}:{ref_id}:{time_slot}"
+    today = datetime.now(timezone.utc).date()
+    notif = SentNotification(user_id=user_id, notification_key=key, sent_date=today)
+    db.add(notif)
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
 
-def _was_sent(user_id: int, notif_type: str, ref_id: int, time_slot: str) -> bool:
-    key = _today_key()
-    return key in _sent_today and f"{user_id}:{notif_type}:{ref_id}:{time_slot}" in _sent_today[key]
+async def _was_sent(db, user_id: int, notif_type: str, ref_id: int, time_slot: str) -> bool:
+    key = f"{notif_type}:{ref_id}:{time_slot}"
+    today = datetime.now(timezone.utc).date()
+    result = await db.execute(
+        select(SentNotification.id).where(
+            and_(
+                SentNotification.user_id == user_id,
+                SentNotification.notification_key == key,
+                SentNotification.sent_date == today,
+            )
+        ).limit(1)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 # ── WebSocket Endpoint ──────────────────────────────────────────────────
@@ -213,7 +220,7 @@ async def _check_medications(db, user_id: int, pet: Pet, today: date, current_ti
         if not med.times_of_day:
             continue
         for slot in med.times_of_day:
-            if _is_time_due(current_time, slot) and not _was_sent(user_id, "medication", med.id, slot):
+            if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "medication", med.id, slot):
                 await manager.send_to_user(user_id, {
                     "type": "medication_reminder",
                     "pet_id": pet.id,
@@ -222,7 +229,7 @@ async def _check_medications(db, user_id: int, pet: Pet, today: date, current_ti
                     "dosage": med.dosage,
                     "scheduled_time": slot,
                 })
-                _mark_sent(user_id, "medication", med.id, slot)
+                await _mark_sent(db, user_id, "medication", med.id, slot)
 
 
 async def _check_feeding(db, user_id: int, pet: Pet, today_start, today_end, current_time: str):
@@ -239,11 +246,11 @@ async def _check_feeding(db, user_id: int, pet: Pet, today_start, today_end, cur
         return
 
     for slot in ("08:00", "13:00", "19:00"):
-        if _is_time_due(current_time, slot) and not _was_sent(user_id, "feeding", pet.id, slot):
+        if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "feeding", pet.id, slot):
             await manager.send_to_user(user_id, {
                 "type": "feeding_reminder",
                 "pet_id": pet.id,
                 "pet_name": pet.name,
                 "scheduled_time": slot,
             })
-            _mark_sent(user_id, "feeding", pet.id, slot)
+            await _mark_sent(db, user_id, "feeding", pet.id, slot)

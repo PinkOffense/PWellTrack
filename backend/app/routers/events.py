@@ -20,6 +20,8 @@ async def list_events(
     pet_id: int,
     date_from: datetime | None = Query(None),
     date_to: datetime | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -29,7 +31,7 @@ async def list_events(
         q = q.where(Event.datetime_start >= date_from)
     if date_to:
         q = q.where(Event.datetime_start <= date_to)
-    q = q.order_by(Event.datetime_start.desc())
+    q = q.order_by(Event.datetime_start.desc()).limit(limit).offset(offset)
     result = await db.execute(q)
     return [EventOut.model_validate(e) for e in result.scalars().all()]
 
