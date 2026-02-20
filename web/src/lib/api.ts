@@ -1,5 +1,5 @@
 import type {
-  TokenResponse, User, Pet, PetCreate, PetDashboard,
+  TokenResponse, User, Pet, PetCreate, PetDashboard, PetSummaryItem,
   FeedingLog, FeedingCreate, WaterLog, WaterCreate,
   Vaccine, VaccineCreate, Medication, MedicationCreate,
   PetEvent, EventCreate, Symptom, SymptomCreate,
@@ -221,6 +221,8 @@ export const authApi = {
 // ── Pets API ──
 export const petsApi = {
   list: () => request<Pet[]>('GET', '/pets/'),
+  /** All pets with dashboards + vaccine status in one call (replaces 2N+1 pattern) */
+  summary: () => request<PetSummaryItem[]>('GET', '/pets/summary'),
   /** Create pet — pass photo_url as data URI to include photo in creation */
   create: (data: PetCreate) => request<Pet>('POST', '/pets/', data),
   get: (id: number) => request<Pet>('GET', `/pets/${id}`),
@@ -298,7 +300,8 @@ export const weightApi = {
 export async function checkBackend(): Promise<boolean> {
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    // 30s timeout accommodates Render free-tier cold starts (~15-20s)
+    const timer = setTimeout(() => ctrl.abort(), 30_000);
     await fetch(`${API_BASE}/health`, { signal: ctrl.signal, mode: 'cors' });
     clearTimeout(timer);
     return true;

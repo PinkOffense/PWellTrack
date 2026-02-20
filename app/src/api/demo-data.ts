@@ -7,6 +7,7 @@
 import type {
   User, TokenResponse, Pet, FeedingLog, WaterLog,
   Vaccine, Medication, PetEvent, Symptom, PetDashboard,
+  PetSummaryItem,
 } from './types';
 
 const now = new Date().toISOString();
@@ -113,4 +114,12 @@ export function getDemoDashboard(petId: number): PetDashboard {
     upcoming_events: events,
     active_medications: meds,
   };
+}
+
+export function getDemoSummary(): PetSummaryItem[] {
+  return DEMO_PETS.map(pet => ({
+    pet,
+    dashboard: getDemoDashboard(pet.id),
+    vaccine_status: { status: 'up_to_date' as const, overdue_count: 0 },
+  }));
 }

@@ -175,3 +175,14 @@ export interface PetDashboard {
   upcoming_events: PetEvent[];
   active_medications: Medication[];
 }
+
+export interface VaccineStatusSummary {
+  status: 'up_to_date' | 'due_soon' | 'overdue' | 'no_records';
+  overdue_count: number;
+}
+
+export interface PetSummaryItem {
+  pet: Pet;
+  dashboard: PetDashboard;
+  vaccine_status: VaccineStatusSummary;
+}

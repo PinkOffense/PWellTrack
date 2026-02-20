@@ -69,6 +69,23 @@ interface RequestOptions {
   params?: Record<string, string>;
 }
 
+// Prevent concurrent refresh attempts
+let _refreshPromise: Promise<void> | null = null;
+
+async function _doRefresh(): Promise<void> {
+  const rt = await tokenStorage.getRefresh();
+  if (!rt) throw new Error('No refresh token');
+  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: rt }),
+  });
+  if (!res.ok) throw new Error('Refresh failed');
+  const data = await res.json();
+  await tokenStorage.set(data.access_token);
+  if (data.refresh_token) await tokenStorage.setRefresh(data.refresh_token);
+}
+
 async function request<T>(method: RequestMethod, path: string, opts?: RequestOptions): Promise<T> {
   const token = await tokenStorage.get();
   let url = `${API_BASE_URL}${path}`;
@@ -90,6 +107,35 @@ async function request<T>(method: RequestMethod, path: string, opts?: RequestOpt
     headers,
     body: opts?.body ? JSON.stringify(opts.body) : undefined,
   });
+
+  // Handle 401 — attempt token refresh and retry once
+  if (res.status === 401 && token) {
+    try {
+      if (!_refreshPromise) {
+        _refreshPromise = _doRefresh();
+      }
+      await _refreshPromise;
+      _refreshPromise = null;
+
+      // Retry with fresh token
+      const freshToken = await tokenStorage.get();
+      const retryHeaders = { ...headers, Authorization: `Bearer ${freshToken}` };
+      const retry = await fetch(url, {
+        method,
+        headers: retryHeaders,
+        body: opts?.body ? JSON.stringify(opts.body) : undefined,
+      });
+      if (retry.ok) {
+        if (retry.status === 204) return undefined as T;
+        return retry.json();
+      }
+    } catch {
+      _refreshPromise = null;
+    }
+    // Refresh failed — clear tokens (AuthContext will redirect to login)
+    await tokenStorage.clear();
+    throw new Error('Session expired. Please log in again.');
+  }
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({ detail: res.statusText }));

@@ -64,6 +64,24 @@ async def test_pet_today(auth_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_pets_summary(auth_client: AsyncClient):
+    """Test the /pets/summary batch endpoint returns pets with dashboards and vaccine status."""
+    await auth_client.post("/pets/", json={"name": "Summary Dog", "species": "dog"})
+    resp = await auth_client.get("/pets/summary")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) >= 1
+    item = data[-1]  # Last created pet
+    assert "pet" in item
+    assert "dashboard" in item
+    assert "vaccine_status" in item
+    assert item["pet"]["name"] == "Summary Dog"
+    assert "feeding" in item["dashboard"]
+    assert "water" in item["dashboard"]
+    assert item["vaccine_status"]["status"] in ("up_to_date", "due_soon", "overdue", "no_records")
+
+
+@pytest.mark.asyncio
 async def test_unauthorized_pet_access(client: AsyncClient):
     resp = await client.get("/pets/")
     assert resp.status_code == 401

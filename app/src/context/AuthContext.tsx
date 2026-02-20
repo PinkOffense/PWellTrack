@@ -66,9 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        // Retry health check up to 3 times with exponential backoff (3s, 6s, 12s timeout)
+        // Retry health check up to 3 times with exponential backoff (5s, 10s, 20s timeout)
+        // Higher base timeout accommodates Render free-tier cold starts (~15-20s)
         const MAX_RETRIES = 3;
-        const BASE_TIMEOUT = 3000;
+        const BASE_TIMEOUT = 5000;
         let reachable = false;
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {

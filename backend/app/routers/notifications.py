@@ -178,14 +178,54 @@ async def _check_reminders():
         return
 
     now_utc = datetime.now(timezone.utc)
-    today_utc = now_utc.date()
-    today_start = datetime.combine(today_utc, time.min, tzinfo=timezone.utc)
-    today_end = datetime.combine(today_utc, time.max, tzinfo=timezone.utc)
 
     async with async_session() as db:
+        # Batch: load all connected users at once
+        users_result = await db.execute(
+            select(User).where(User.id.in_(connected))
+        )
+        users = {u.id: u for u in users_result.scalars().all()}
+
+        # Batch: load all pets for all connected users
+        pets_result = await db.execute(
+            select(Pet).where(Pet.user_id.in_(connected))
+        )
+        all_pets = pets_result.scalars().all()
+        pets_by_user: dict[int, list] = {uid: [] for uid in connected}
+        all_pet_ids = []
+        for p in all_pets:
+            pets_by_user.setdefault(p.user_id, []).append(p)
+            all_pet_ids.append(p.id)
+
+        if not all_pet_ids:
+            return
+
+        # Batch: load all active medications for all pets
+        # We need each user's "today" for medication filtering, but for a first pass
+        # we can load broadly and filter in-memory
+        meds_result = await db.execute(
+            select(Medication).where(Medication.pet_id.in_(all_pet_ids))
+        )
+        all_meds = meds_result.scalars().all()
+        meds_by_pet: dict[int, list] = {}
+        for m in all_meds:
+            meds_by_pet.setdefault(m.pet_id, []).append(m)
+
+        # Batch: check which pets have been fed today (UTC bounds for broad check)
+        today_utc = now_utc.date()
+        today_start = datetime.combine(today_utc, time.min, tzinfo=timezone.utc)
+        today_end = datetime.combine(today_utc, time.max, tzinfo=timezone.utc)
+        fed_result = await db.execute(
+            select(FeedingLog.pet_id).where(
+                FeedingLog.pet_id.in_(all_pet_ids),
+                FeedingLog.datetime_.between(today_start, today_end),
+            ).distinct()
+        )
+        fed_pet_ids = {row[0] for row in fed_result.all()}
+
+        # Process per user
         for user_id in connected:
-            # Get user timezone
-            user = await db.get(User, user_id)
+            user = users.get(user_id)
             if not user:
                 continue
             try:
@@ -197,60 +237,35 @@ async def _check_reminders():
             current_time = user_now.strftime("%H:%M")
             user_today = user_now.date()
 
-            pets_result = await db.execute(
-                select(Pet).where(Pet.user_id == user_id)
-            )
-            pets = pets_result.scalars().all()
+            for pet in pets_by_user.get(user_id, []):
+                # Medication reminders
+                for med in meds_by_pet.get(pet.id, []):
+                    if med.start_date > user_today:
+                        continue
+                    if med.end_date and med.end_date < user_today:
+                        continue
+                    if not med.times_of_day:
+                        continue
+                    for slot in med.times_of_day:
+                        if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "medication", med.id, slot):
+                            await manager.send_to_user(user_id, {
+                                "type": "medication_reminder",
+                                "pet_id": pet.id,
+                                "pet_name": pet.name,
+                                "medication_name": med.name,
+                                "dosage": med.dosage,
+                                "scheduled_time": slot,
+                            })
+                            await _mark_sent(db, user_id, "medication", med.id, slot)
 
-            for pet in pets:
-                await _check_medications(db, user_id, pet, user_today, current_time)
-                await _check_feeding(db, user_id, pet, today_start, today_end, current_time)
-
-
-async def _check_medications(db, user_id: int, pet: Pet, today: date, current_time: str):
-    """Send reminders for active medications whose scheduled time is now."""
-    result = await db.execute(
-        select(Medication).where(
-            Medication.pet_id == pet.id,
-            Medication.start_date <= today,
-            (Medication.end_date.is_(None)) | (Medication.end_date >= today),
-        )
-    )
-    for med in result.scalars().all():
-        if not med.times_of_day:
-            continue
-        for slot in med.times_of_day:
-            if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "medication", med.id, slot):
-                await manager.send_to_user(user_id, {
-                    "type": "medication_reminder",
-                    "pet_id": pet.id,
-                    "pet_name": pet.name,
-                    "medication_name": med.name,
-                    "dosage": med.dosage,
-                    "scheduled_time": slot,
-                })
-                await _mark_sent(db, user_id, "medication", med.id, slot)
-
-
-async def _check_feeding(db, user_id: int, pet: Pet, today_start, today_end, current_time: str):
-    """Send feeding reminder if pet hasn't been fed at standard meal times."""
-    feeding_result = await db.execute(
-        select(FeedingLog.id).where(
-            FeedingLog.pet_id == pet.id,
-            FeedingLog.datetime_.between(today_start, today_end),
-        ).limit(1)
-    )
-    has_been_fed = feeding_result.scalar_one_or_none() is not None
-
-    if has_been_fed:
-        return
-
-    for slot in ("08:00", "13:00", "19:00"):
-        if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "feeding", pet.id, slot):
-            await manager.send_to_user(user_id, {
-                "type": "feeding_reminder",
-                "pet_id": pet.id,
-                "pet_name": pet.name,
-                "scheduled_time": slot,
-            })
-            await _mark_sent(db, user_id, "feeding", pet.id, slot)
+                # Feeding reminders
+                if pet.id not in fed_pet_ids:
+                    for slot in ("08:00", "13:00", "19:00"):
+                        if _is_time_due(current_time, slot) and not await _was_sent(db, user_id, "feeding", pet.id, slot):
+                            await manager.send_to_user(user_id, {
+                                "type": "feeding_reminder",
+                                "pet_id": pet.id,
+                                "pet_name": pet.name,
+                                "scheduled_time": slot,
+                            })
+                            await _mark_sent(db, user_id, "feeding", pet.id, slot)
