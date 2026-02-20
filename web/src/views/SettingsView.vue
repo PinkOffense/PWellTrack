@@ -84,7 +84,7 @@ async function handleLogout() {
               class="avatar-img"
               @error="photoError = true"
             />
-            <div v-else class="avatar-fallback">
+            <div v-else class="avatar-fallback" :title="photoError ? t('profile.photoLoadError') : ''">
               <span class="avatar-initials">{{ initials }}</span>
             </div>
             <div class="avatar-badge">

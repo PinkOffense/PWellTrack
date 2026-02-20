@@ -12,7 +12,7 @@ from app.schemas.symptom import SymptomCreate, SymptomUpdate, SymptomOut
 
 router = APIRouter(tags=["symptoms"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"datetime_", "type", "severity", "notes"}
 
 
 @router.get("/pets/{pet_id}/symptoms", response_model=list[SymptomOut])
@@ -69,7 +69,7 @@ async def update_symptom(
         raise HTTPException(status_code=404, detail="Symptom not found")
     await get_pet_for_user(symptom.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(symptom, key, value)
     await db.commit()
     await db.refresh(symptom)

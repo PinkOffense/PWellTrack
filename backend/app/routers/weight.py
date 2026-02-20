@@ -12,7 +12,7 @@ from app.schemas.weight import WeightCreate, WeightUpdate, WeightOut
 
 router = APIRouter(tags=["weight"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"datetime_", "weight_kg", "notes"}
 
 
 @router.get("/pets/{pet_id}/weight", response_model=list[WeightOut])
@@ -68,7 +68,7 @@ async def update_weight(
         raise HTTPException(status_code=404, detail="Weight log not found")
     await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(log, key, value)
     await db.commit()
     await db.refresh(log)

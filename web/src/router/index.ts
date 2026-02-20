@@ -21,12 +21,30 @@ export const router = createRouter({
   ],
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore();
+
+  // Wait for auth initialization to complete before making guard decisions
+  if (auth.loading) {
+    await new Promise<void>((resolve) => {
+      const unwatch = auth.$subscribe(() => {
+        if (!auth.loading) {
+          unwatch();
+          resolve();
+        }
+      });
+      // Resolve immediately if already loaded
+      if (!auth.loading) {
+        unwatch();
+        resolve();
+      }
+    });
+  }
+
   const isGuest = to.meta.guest === true;
   const isAuth = !!auth.user;
 
-  if (!isGuest && !isAuth && !auth.loading) {
+  if (!isGuest && !isAuth) {
     return '/login';
   }
   if (isGuest && isAuth) {

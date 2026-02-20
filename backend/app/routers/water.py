@@ -12,7 +12,7 @@ from app.schemas.water import WaterCreate, WaterUpdate, WaterOut
 
 router = APIRouter(tags=["water"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"datetime_", "amount_ml", "daily_goal_ml"}
 
 
 @router.get("/pets/{pet_id}/water", response_model=list[WaterOut])
@@ -68,7 +68,7 @@ async def update_water(
         raise HTTPException(status_code=404, detail="Water log not found")
     await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(log, key, value)
     await db.commit()
     await db.refresh(log)

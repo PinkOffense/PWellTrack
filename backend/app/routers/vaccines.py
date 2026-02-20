@@ -12,7 +12,7 @@ from app.schemas.vaccine import VaccineCreate, VaccineUpdate, VaccineOut
 
 router = APIRouter(tags=["vaccines"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"name", "date_administered", "next_due_date", "clinic", "notes", "document_url"}
 
 
 @router.get("/pets/{pet_id}/vaccines", response_model=list[VaccineOut])
@@ -63,7 +63,7 @@ async def update_vaccine(
         raise HTTPException(status_code=404, detail="Vaccine not found")
     await get_pet_for_user(vaccine.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(vaccine, key, value)
     await db.commit()
     await db.refresh(vaccine)

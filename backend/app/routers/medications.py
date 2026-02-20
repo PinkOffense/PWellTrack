@@ -12,7 +12,7 @@ from app.schemas.medication import MedicationCreate, MedicationUpdate, Medicatio
 
 router = APIRouter(tags=["medications"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"name", "dosage", "frequency_per_day", "start_date", "end_date", "times_of_day", "notes"}
 
 
 @router.get("/pets/{pet_id}/medications", response_model=list[MedicationOut])
@@ -63,7 +63,7 @@ async def update_medication(
         raise HTTPException(status_code=404, detail="Medication not found")
     await get_pet_for_user(med.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(med, key, value)
     await db.commit()
     await db.refresh(med)

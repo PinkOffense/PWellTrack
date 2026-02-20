@@ -145,7 +145,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
                 return retry.json();
               }
             }
-          } catch { /* refresh failed */ }
+          } catch (refreshErr) {
+            console.warn('[API] Token refresh failed:', refreshErr instanceof Error ? refreshErr.message : refreshErr);
+          }
         }
         tokenStorage.clear();
         if (typeof window !== 'undefined') {
@@ -156,7 +158,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }));
-        throw new Error(err.detail || `Error ${res.status}`);
+        const error = new Error(err.detail || `Error ${res.status}`);
+        (error as any).status = res.status;
+        throw error;
       }
 
       if (res.status === 204) return undefined as unknown as T;

@@ -12,7 +12,7 @@ from app.schemas.event import EventCreate, EventUpdate, EventOut
 
 router = APIRouter(tags=["events"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"type", "title", "datetime_start", "duration_minutes", "location", "notes", "reminder_minutes_before"}
 
 
 @router.get("/pets/{pet_id}/events", response_model=list[EventOut])
@@ -63,7 +63,7 @@ async def update_event(
         raise HTTPException(status_code=404, detail="Event not found")
     await get_pet_for_user(event.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(event, key, value)
     await db.commit()
     await db.refresh(event)

@@ -9,7 +9,7 @@ _TIME_PATTERN = re.compile(r"^\d{2}:\d{2}$")
 class MedicationCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     dosage: str = Field(min_length=1, max_length=100)
-    frequency_per_day: int = Field(gt=0)
+    frequency_per_day: int = Field(gt=0, le=24)
     start_date: date
     end_date: Optional[date] = None
     times_of_day: Optional[list[str]] = None
@@ -29,7 +29,7 @@ class MedicationCreate(BaseModel):
 class MedicationUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     dosage: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    frequency_per_day: Optional[int] = Field(default=None, gt=0)
+    frequency_per_day: Optional[int] = Field(default=None, gt=0, le=24)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     times_of_day: Optional[list[str]] = None

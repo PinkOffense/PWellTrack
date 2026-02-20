@@ -35,8 +35,13 @@ const items = ref<any[]>([]);
 const loading = ref(true);
 const showModal = ref(false);
 const editingItem = ref<any>(null);
+const deleting = ref(false);
 
 async function fetchData() {
+  if (!Number.isFinite(petId) || petId <= 0) {
+    router.push('/pets');
+    return;
+  }
   try {
     const [p, data] = await Promise.all([
       petsApi.get(petId),
@@ -44,13 +49,16 @@ async function fetchData() {
     ]);
     pet.value = p;
     items.value = data;
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.warn('[RecordPage] Failed to fetch:', e instanceof Error ? e.message : e);
+  }
   loading.value = false;
 }
 
 onMounted(fetchData);
 
 async function handleDelete(item: any) {
+  if (deleting.value) return;
   const ok = await confirm.show({
     title: t('common.delete'),
     message: props.deleteMsg,
@@ -58,11 +66,14 @@ async function handleDelete(item: any) {
     danger: true,
   });
   if (!ok) return;
+  deleting.value = true;
   try {
     await props.deleteFn(item.id);
     await fetchData();
   } catch (e: any) {
     toast.show(e.message, 'error');
+  } finally {
+    deleting.value = false;
   }
 }
 

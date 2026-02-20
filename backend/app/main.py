@@ -30,10 +30,17 @@ _ALLOWED_ORIGINS = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
 _ALLOW_ALL = "*" in _ALLOWED_ORIGINS
 
 if _ALLOW_ALL:
-    logger.warning(
-        "CORS_ORIGINS is set to '*'. This allows any website to make "
-        "authenticated requests. Set explicit origins in production."
-    )
+    if settings.is_postgres:
+        logger.critical(
+            "CORS_ORIGINS is set to '*' in a production database environment. "
+            "This is a security risk with allow_credentials=True. "
+            "Set explicit origins in CORS_ORIGINS."
+        )
+    else:
+        logger.warning(
+            "CORS_ORIGINS is set to '*'. This allows any website to make "
+            "authenticated requests. Set explicit origins in production."
+        )
 
 
 def _get_cors_origin(request: Request) -> str | None:
@@ -64,19 +71,22 @@ async def lifespan(app: FastAPI):
     # in production Alembic handles migrations).  If the database is
     # temporarily unreachable (e.g. Supabase free-tier waking up), retry
     # a few times so the app doesn't crash on a cold start.
-    for attempt in range(1, 4):
+    max_retries = settings.DB_CONNECT_RETRIES
+    retry_delay = settings.DB_CONNECT_RETRY_DELAY
+    for attempt in range(1, max_retries + 1):
         try:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             break
         except Exception as exc:
-            logger.warning("DB connection attempt %d/3 failed: %s", attempt, exc)
-            if attempt < 3:
-                await asyncio.sleep(5)
+            logger.warning("DB connection attempt %d/%d failed: %s", attempt, max_retries, exc)
+            if attempt < max_retries:
+                await asyncio.sleep(retry_delay)
             else:
                 logger.error(
-                    "Could not connect to database after 3 attempts. "
-                    "The API will start but DB-dependent routes may fail."
+                    "Could not connect to database after %d attempts. "
+                    "The API will start but DB-dependent routes may fail.",
+                    max_retries,
                 )
     # Start background reminder loop
     task = asyncio.create_task(notifications.reminder_loop())

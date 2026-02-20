@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     CORS_ORIGINS: str = "https://p-well-track.vercel.app,http://localhost:3000"
+    DB_CONNECT_RETRIES: int = 3
+    DB_CONNECT_RETRY_DELAY: int = 5
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
@@ -40,6 +42,10 @@ class Settings(BaseSettings):
     @property
     def has_insecure_secret(self) -> bool:
         return self.is_postgres and self.SECRET_KEY == _INSECURE_SECRET
+
+    @property
+    def has_default_database(self) -> bool:
+        return self.is_postgres and "sqlite" in self.DATABASE_URL
 
 
 settings = Settings()
