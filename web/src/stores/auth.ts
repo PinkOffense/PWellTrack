@@ -61,10 +61,33 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
       }
+
+      // Check for existing Supabase session (Google OAuth redirect lands here)
+      if (!user.value) {
+        const sb = getSupabase();
+        if (isSupabaseConfigured && sb) {
+          try {
+            const { data } = await sb.auth.getSession();
+            if (data.session?.user) {
+              const email = data.session.user.email || '';
+              const name =
+                data.session.user.user_metadata?.full_name ||
+                data.session.user.user_metadata?.name ||
+                email.split('@')[0];
+              const res = await authApi.google({ email, name, supabase_token: data.session.access_token });
+              tokenStorage.set(res.access_token);
+              if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
+              user.value = res.user;
+            }
+          } catch (e) {
+            console.error('Failed to sync Google user with backend:', e);
+          }
+        }
+      }
     }
     loading.value = false;
 
-    // Listen for Supabase auth callback (Google OAuth redirect)
+    // Listen for future Supabase auth changes (e.g. token refresh)
     const sb = getSupabase();
     if (!isSupabaseConfigured || !sb) return;
     sb.auth.onAuthStateChange(async (event, session) => {
