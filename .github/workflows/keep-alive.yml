@@ -1,0 +1,27 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    # Ping every 14 minutes to prevent Render free-tier from sleeping (sleeps after ~15 min)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          URL="${API_URL:-https://pwelltrack-api.onrender.com}/health"
+          echo "Pinging $URL ..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "$URL" || echo "000")
+          echo "Response: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "000" ]; then
+            echo "::warning::Backend did not respond (cold start may be in progress)"
+          elif [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Backend returned HTTP $HTTP_CODE"
+          else
+            echo "Backend is alive"
+          fi
+        env:
+          API_URL: ${{ vars.API_URL }}

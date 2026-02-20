@@ -4,16 +4,42 @@ import { authApi, tokenStorage, checkBackend } from '@/lib/api';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { User } from '@/lib/types';
 
+// Keep backend alive: ping /health every 10 min while the tab is visible
+let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+function startKeepAlive() {
+  if (keepAliveTimer) return;
+  keepAliveTimer = setInterval(() => {
+    if (!document.hidden) checkBackend().catch(() => {});
+  }, 10 * 60 * 1000);
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const loading = ref(true);
   const backendReachable = ref(false);
+  /** True while we're retrying to wake a sleeping backend */
+  const warming = ref(false);
   const googleAvailable = computed(() => isSupabaseConfigured && backendReachable.value);
 
   async function init() {
-    const ok = await checkBackend();
+    // Try up to 3 times (total ~90s) to accommodate Render free-tier cold starts
+    const MAX_WAKE_ATTEMPTS = 3;
+    let ok = false;
+    for (let attempt = 1; attempt <= MAX_WAKE_ATTEMPTS; attempt++) {
+      if (attempt > 1) warming.value = true;
+      ok = await checkBackend();
+      if (ok) break;
+      if (attempt < MAX_WAKE_ATTEMPTS) {
+        warming.value = true;
+        // Wait 5s between retries to give the server time to boot
+        await new Promise(r => setTimeout(r, 5_000));
+      }
+    }
+    warming.value = false;
     backendReachable.value = ok;
+
     if (ok) {
+      startKeepAlive();
       const stored = tokenStorage.get();
       if (stored) {
         try {
@@ -91,5 +117,14 @@ export const useAuthStore = defineStore('auth', () => {
     } catch { /* ignore */ }
   }
 
-  return { user, loading, backendReachable, googleAvailable, init, login, register, loginWithGoogle, logout, refreshUser };
+  async function retryBackend() {
+    warming.value = true;
+    const ok = await checkBackend();
+    warming.value = false;
+    backendReachable.value = ok;
+    if (ok) startKeepAlive();
+    return ok;
+  }
+
+  return { user, loading, backendReachable, warming, googleAvailable, init, login, register, loginWithGoogle, logout, refreshUser, retryBackend };
 });

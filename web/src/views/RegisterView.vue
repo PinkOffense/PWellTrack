@@ -70,6 +70,19 @@ async function handleGoogle() {
         <p class="auth-subtitle">{{ t('auth.createYourAccount') }}</p>
       </div>
 
+      <div v-if="auth.warming || auth.loading" class="alert-warming mb-4">
+        <div class="warming-spinner" />
+        <div>
+          <p class="warming-title">{{ t('auth.warmingUp') }}</p>
+          <p class="warming-hint">{{ t('auth.warmingHint') }}</p>
+        </div>
+      </div>
+
+      <div v-else-if="!auth.backendReachable" class="alert-warning mb-4">
+        <p>{{ t('auth.offlineMsg') }}</p>
+        <button class="btn-retry mt-2" @click="auth.retryBackend()">{{ t('auth.retryConnection') }}</button>
+      </div>
+
       <div v-if="error" class="alert-error mb-4">{{ error }}</div>
 
       <form @submit.prevent="handleRegister" class="auth-form">
@@ -218,4 +231,24 @@ async function handleGoogle() {
 }
 .auth-link { color: var(--c-primary); font-weight: 600; }
 .auth-link:hover { text-decoration: underline; }
+.alert-warming {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: var(--radius-md);
+  background: #fef3c7; border: 1px solid #fde68a;
+}
+.warming-spinner {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 3px solid #d97706; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.warming-title { font-weight: 600; font-size: 14px; color: #92400e; }
+.warming-hint { font-size: 12px; color: #a16207; margin-top: 2px; }
+.btn-retry {
+  font-size: 13px; font-weight: 600; color: #92400e;
+  padding: 6px 14px; border-radius: var(--radius-md);
+  border: 1px solid #d97706; background: #fffbeb;
+  transition: all var(--transition); cursor: pointer;
+}
+.btn-retry:hover { background: #fef3c7; }
 </style>
