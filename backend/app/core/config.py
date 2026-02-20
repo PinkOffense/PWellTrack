@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from pydantic_settings import BaseSettings
 
@@ -38,15 +37,9 @@ class Settings(BaseSettings):
         """Check if using PostgreSQL (Supabase/production) vs SQLite (dev)."""
         return "postgresql" in self.DATABASE_URL or "postgres://" in self.DATABASE_URL
 
-    def validate_security(self) -> None:
-        """Reject insecure default secret key in production."""
-        if self.is_postgres and self.SECRET_KEY == _INSECURE_SECRET:
-            _logger.critical(
-                "FATAL: SECRET_KEY is set to the insecure default. "
-                "Set a strong SECRET_KEY environment variable in production."
-            )
-            sys.exit(1)
+    @property
+    def has_insecure_secret(self) -> bool:
+        return self.is_postgres and self.SECRET_KEY == _INSECURE_SECRET
 
 
 settings = Settings()
-settings.validate_security()

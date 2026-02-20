@@ -51,9 +51,33 @@ def _get_cors_origin(request: Request) -> str | None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting PWellTrack API")
-    # Create tables on startup (for local dev with SQLite)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+    # Validate secret key (only at API startup, not during alembic migrations)
+    if settings.has_insecure_secret:
+        logger.critical(
+            "FATAL: SECRET_KEY is set to the insecure default. "
+            "Set a strong SECRET_KEY environment variable in production."
+        )
+        raise SystemExit(1)
+
+    # Create tables on startup (only needed for local dev with SQLite;
+    # in production Alembic handles migrations).  If the database is
+    # temporarily unreachable (e.g. Supabase free-tier waking up), retry
+    # a few times so the app doesn't crash on a cold start.
+    for attempt in range(1, 4):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            break
+        except Exception as exc:
+            logger.warning("DB connection attempt %d/3 failed: %s", attempt, exc)
+            if attempt < 3:
+                await asyncio.sleep(5)
+            else:
+                logger.error(
+                    "Could not connect to database after 3 attempts. "
+                    "The API will start but DB-dependent routes may fail."
+                )
     # Start background reminder loop
     task = asyncio.create_task(notifications.reminder_loop())
     logger.info("Background reminder loop started")
