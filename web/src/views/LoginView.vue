@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { Mail, Lock, Eye, EyeOff, PawPrint } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import FerretMascot from '@/components/FerretMascot.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -65,91 +66,89 @@ function handleDemo() {
     </div>
 
     <div class="auth-card animate-slideUp">
+      <FerretMascot />
+
       <div class="auth-hero">
-        <div class="hero-circles">
-          <div class="hero-circle hero-circle-outer" />
-          <div class="hero-circle hero-circle-inner">
-            <PawPrint :size="32" />
-          </div>
-        </div>
         <h1 class="auth-title">PWellTrack</h1>
         <p class="auth-subtitle">{{ t('auth.petCompanion') }}</p>
       </div>
 
-      <div v-if="auth.warming || auth.loading" class="alert-warming mb-4">
-        <div class="warming-spinner" />
-        <div>
-          <p class="warming-title">{{ t('auth.warmingUp') }}</p>
-          <p class="warming-hint">{{ t('auth.warmingHint') }}</p>
-        </div>
-      </div>
-
-      <div v-else-if="!auth.backendReachable" class="alert-warning mb-4">
-        <p>{{ t('auth.offlineMsg') }}</p>
-        <button class="btn-retry mt-2" @click="auth.retryBackend()">{{ t('auth.retryConnection') }}</button>
-      </div>
-
-      <div v-if="error" class="alert-error mb-4">{{ error }}</div>
-
-      <form @submit.prevent="handleLogin" class="auth-form">
-        <div class="form-field">
-          <label class="label">{{ t('auth.email') }}</label>
-          <div class="input-wrap">
-            <Mail :size="16" class="input-icon" />
-            <input
-              v-model="email"
-              type="email"
-              class="input input-with-icon"
-              :placeholder="t('auth.email')"
-              autocomplete="email"
-            />
+      <div class="auth-body">
+        <div v-if="auth.warming || auth.loading" class="alert-warming mb-4">
+          <div class="warming-spinner" />
+          <div>
+            <p class="warming-title">{{ t('auth.warmingUp') }}</p>
+            <p class="warming-hint">{{ t('auth.warmingHint') }}</p>
           </div>
         </div>
 
-        <div class="form-field">
-          <label class="label">{{ t('auth.password') }}</label>
-          <div class="input-wrap">
-            <Lock :size="16" class="input-icon" />
-            <input
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              class="input input-with-icon"
-              :placeholder="t('auth.password')"
-              autocomplete="current-password"
-            />
-            <button type="button" class="input-toggle" @click="showPassword = !showPassword">
-              <EyeOff v-if="showPassword" :size="16" />
-              <Eye v-else :size="16" />
-            </button>
-          </div>
+        <div v-else-if="!auth.backendReachable" class="alert-warning mb-4">
+          <p>{{ t('auth.offlineMsg') }}</p>
+          <button class="btn-retry mt-2" @click="auth.retryBackend()">{{ t('auth.retryConnection') }}</button>
         </div>
 
-        <button type="submit" class="btn-primary w-full" :disabled="loading">
-          {{ loading ? t('common.loading') : t('auth.login') }}
+        <div v-if="error" class="alert-error mb-4">{{ error }}</div>
+
+        <form @submit.prevent="handleLogin" class="auth-form">
+          <div class="form-field">
+            <label class="label">{{ t('auth.email') }}</label>
+            <div class="input-wrap">
+              <Mail :size="16" class="input-icon" />
+              <input
+                v-model="email"
+                type="email"
+                class="input input-with-icon"
+                :placeholder="t('auth.email')"
+                autocomplete="email"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="label">{{ t('auth.password') }}</label>
+            <div class="input-wrap">
+              <Lock :size="16" class="input-icon" />
+              <input
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                class="input input-with-icon"
+                :placeholder="t('auth.password')"
+                autocomplete="current-password"
+              />
+              <button type="button" class="input-toggle" @click="showPassword = !showPassword">
+                <EyeOff v-if="showPassword" :size="16" />
+                <Eye v-else :size="16" />
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary w-full" :disabled="loading">
+            {{ loading ? t('common.loading') : t('auth.login') }}
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <span>{{ t('common.or') }}</span>
+        </div>
+
+        <button
+          v-if="auth.googleAvailable"
+          class="btn-google w-full"
+          @click="handleGoogle"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          {{ t('auth.googleSignIn') }}
         </button>
-      </form>
 
-      <div class="auth-divider">
-        <span>{{ t('common.or') }}</span>
+        <button class="btn-secondary w-full mt-2" @click="handleDemo">
+          {{ t('auth.tryDemo') }}
+        </button>
+
+        <p class="auth-footer">
+          {{ t('auth.noAccount') }}
+          <router-link to="/register" class="auth-link">{{ t('auth.register') }}</router-link>
+        </p>
       </div>
-
-      <button
-        v-if="auth.googleAvailable"
-        class="btn-google w-full"
-        @click="handleGoogle"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        {{ t('auth.googleSignIn') }}
-      </button>
-
-      <button class="btn-secondary w-full mt-2" @click="handleDemo">
-        {{ t('auth.tryDemo') }}
-      </button>
-
-      <p class="auth-footer">
-        {{ t('auth.noAccount') }}
-        <router-link to="/register" class="auth-link">{{ t('auth.register') }}</router-link>
-      </p>
     </div>
   </div>
 </template>
@@ -174,21 +173,11 @@ function handleDemo() {
 .auth-card {
   width: 100%; max-width: 400px; background: rgba(255,255,255,0.85);
   backdrop-filter: blur(20px); border-radius: var(--radius-lg);
-  padding: 36px; box-shadow: 0 12px 48px rgba(155,142,200,0.12);
-  position: relative; z-index: 1;
+  padding: 0; box-shadow: 0 12px 48px rgba(155,142,200,0.12);
+  position: relative; z-index: 1; overflow: hidden;
 }
-.auth-hero { text-align: center; margin-bottom: 28px; }
-.hero-circles { position: relative; width: 80px; height: 80px; margin: 0 auto 16px; }
-.hero-circle {
-  position: absolute; border-radius: 50%;
-}
-.hero-circle-outer {
-  inset: 0; background: linear-gradient(135deg, #f5f0ff, #ece5ff);
-}
-.hero-circle-inner {
-  inset: 12px; background: linear-gradient(135deg, #B4A5D6, #9B8EC8);
-  display: flex; align-items: center; justify-content: center; color: #fff;
-}
+.auth-hero { text-align: center; margin-bottom: 4px; padding: 16px 36px 0; }
+.auth-body { padding: 0 36px 36px; }
 .auth-title {
   font-size: 26px; font-weight: 800;
   background: linear-gradient(to right, #9B8EC8, #B4A5D6);
