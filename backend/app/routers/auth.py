@@ -139,7 +139,8 @@ async def me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     """Issue a new token pair from a valid refresh token."""
     try:
         payload = _decode_jwt(data.refresh_token, expected_type="refresh")
@@ -157,7 +158,9 @@ async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)
 # ── Profile update ────────────────────────────────────────────────────────
 
 @router.put("/profile", response_model=UserOut)
+@limiter.limit("20/minute")
 async def update_profile(
+    request: Request,
     data: _ProfileUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -175,7 +178,9 @@ async def update_profile(
 # ── Profile photo ────────────────────────────────────────────────────────
 
 @router.put("/photo", response_model=UserOut)
+@limiter.limit("10/minute")
 async def update_photo_json(
+    request: Request,
     data: _PhotoData,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -186,7 +191,7 @@ async def update_photo_json(
     if not is_url and not is_data_uri:
         raise HTTPException(status_code=400, detail="Invalid photo data")
     if is_data_uri and len(data.photo_data) > 7_000_000:
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is ~5 MB")
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is ~7 MB")
     current_user.photo_url = data.photo_data
     await db.commit()
     await db.refresh(current_user)
@@ -194,7 +199,9 @@ async def update_photo_json(
 
 
 @router.delete("/photo", response_model=UserOut)
+@limiter.limit("10/minute")
 async def delete_profile_photo(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -207,7 +214,9 @@ async def delete_profile_photo(
 # ── Change password ──────────────────────────────────────────────────────
 
 @router.put("/password", response_model=UserOut)
+@limiter.limit("5/minute")
 async def change_password(
+    request: Request,
     data: PasswordChange,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -227,7 +236,9 @@ async def change_password(
 # ── Delete account ───────────────────────────────────────────────────────
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("3/minute")
 async def delete_account(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

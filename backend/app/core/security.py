@@ -28,7 +28,7 @@ def verify_password(plain: str, hashed: str) -> bool:
         salt, hash_hex = hashed.split("$", 1)
         h = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt.encode(), 100_000)
         return hmac.compare_digest(h.hex(), hash_hex)
-    except Exception:
+    except (ValueError, AttributeError, UnicodeDecodeError):
         return False
 
 
@@ -85,7 +85,7 @@ async def get_current_user(
         if user_id is None:
             raise credentials_exception
         uid = int(user_id)
-    except Exception:
+    except (ValueError, KeyError, TypeError):
         raise credentials_exception
 
     user = await db.get(User, uid)

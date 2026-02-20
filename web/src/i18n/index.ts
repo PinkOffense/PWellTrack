@@ -9,6 +9,6 @@ const savedLang = typeof window !== 'undefined'
 export const i18n = createI18n({
   legacy: false,
   locale: savedLang,
-  fallbackLocale: 'en',
+  fallbackLocale: 'pt',
   messages: { en, pt },
 });

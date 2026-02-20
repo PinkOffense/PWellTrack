@@ -12,6 +12,12 @@ function startKeepAlive() {
     if (!document.hidden) checkBackend().catch(() => {});
   }, 10 * 60 * 1000);
 }
+function stopKeepAlive() {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
@@ -100,12 +106,13 @@ export const useAuthStore = defineStore('auth', () => {
     if (!isSupabaseConfigured || !sb) throw new Error('Google Sign-In not configured');
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/login' },
+      options: { redirectTo: window.location.origin + '/pets' },
     });
     if (error) throw new Error(error.message);
   }
 
   function logout() {
+    stopKeepAlive();
     tokenStorage.clear();
     getSupabase()?.auth.signOut().catch(() => {});
     user.value = null;
@@ -114,7 +121,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshUser() {
     try {
       user.value = await authApi.me();
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn('[Auth] Failed to refresh user:', e instanceof Error ? e.message : e);
+    }
   }
 
   async function retryBackend() {

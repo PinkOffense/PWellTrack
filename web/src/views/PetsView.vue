@@ -40,7 +40,9 @@ async function fetchPets() {
   if (isDemo.value) { loading.value = false; return; }
   try {
     items.value = await petsApi.summary();
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.warn('[PetsView] Failed to fetch pets:', e instanceof Error ? e.message : e);
+  }
   loading.value = false;
 }
 
@@ -74,10 +76,12 @@ function handlePhotoSelect(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
   formPhoto.value = file;
+  if (formPhotoPreview.value) URL.revokeObjectURL(formPhotoPreview.value);
   formPhotoPreview.value = URL.createObjectURL(file);
 }
 
 function clearPhoto() {
+  if (formPhotoPreview.value) URL.revokeObjectURL(formPhotoPreview.value);
   formPhoto.value = null;
   formPhotoPreview.value = '';
 }

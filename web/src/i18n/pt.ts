@@ -226,6 +226,7 @@ export default {
   profile: {
     changePhoto: 'Alterar foto',
     removePhoto: 'Remover foto',
+    photoLoadError: 'Não foi possível carregar a foto',
   },
   settings: {
     title: 'Definições',

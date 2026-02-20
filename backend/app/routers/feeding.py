@@ -12,7 +12,7 @@ from app.schemas.feeding import FeedingCreate, FeedingUpdate, FeedingOut
 
 router = APIRouter(tags=["feeding"])
 
-_PROTECTED_FIELDS = {"pet_id", "id"}
+_ALLOWED_FIELDS = {"datetime_", "food_type", "planned_amount_grams", "actual_amount_grams", "notes"}
 
 
 @router.get("/pets/{pet_id}/feeding", response_model=list[FeedingOut])
@@ -70,7 +70,7 @@ async def update_feeding(
         raise HTTPException(status_code=404, detail="Feeding log not found")
     await get_pet_for_user(log.pet_id, current_user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
-        if key not in _PROTECTED_FIELDS:
+        if key in _ALLOWED_FIELDS:
             setattr(log, key, value)
     await db.commit()
     await db.refresh(log)

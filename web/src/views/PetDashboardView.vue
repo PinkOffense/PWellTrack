@@ -22,6 +22,10 @@ const vaccines = ref<Vaccine[]>([]);
 const loading = ref(true);
 
 onMounted(async () => {
+  if (!Number.isFinite(petId) || petId <= 0) {
+    router.replace('/pets');
+    return;
+  }
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -36,7 +40,9 @@ onMounted(async () => {
     dashboard.value = d;
     recentFeeding.value = f;
     vaccines.value = v;
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.warn('[PetDashboard] Failed to load:', e instanceof Error ? e.message : e);
+  }
   loading.value = false;
 });
 

@@ -1,7 +1,7 @@
 import logging
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,10 +32,17 @@ def _pet_out(pet: Pet) -> PetOut:
 
 @router.get("/", response_model=list[PetOut])
 async def list_pets(
+    limit: int = 100,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Pet).where(Pet.user_id == current_user.id))
+    result = await db.execute(
+        select(Pet).where(Pet.user_id == current_user.id)
+        .order_by(Pet.id)
+        .limit(limit)
+        .offset(offset)
+    )
     return [_pet_out(p) for p in result.scalars().all()]
 
 
@@ -51,8 +58,8 @@ async def pets_summary(
     """
     # Use user's timezone for "today" calculation
     try:
-        user_tz = ZoneInfo(current_user.timezone)
-    except Exception:
+        user_tz = ZoneInfo(current_user.timezone) if current_user.timezone else timezone.utc
+    except (KeyError, ValueError):
         user_tz = timezone.utc
     user_now = datetime.now(user_tz)
     user_today = user_now.date()
@@ -105,16 +112,24 @@ async def pets_summary(
         pid, total_ml, count = row
         water_map[pid] = (float(total_ml), int(count))
 
-    # Get latest daily goals per pet (one query using DISTINCT ON for postgres, or subquery)
-    water_goals: dict[int, float | None] = {}
-    for pid in pet_ids:
-        goal_result = await db.execute(
-            select(WaterLog.daily_goal_ml)
-            .where(WaterLog.pet_id == pid, WaterLog.daily_goal_ml.isnot(None))
-            .order_by(WaterLog.datetime_.desc())
-            .limit(1)
+    # Get latest daily goals per pet in a single query using window function
+    latest_goal_subq = (
+        select(
+            WaterLog.pet_id,
+            WaterLog.daily_goal_ml,
+            func.row_number().over(
+                partition_by=WaterLog.pet_id,
+                order_by=WaterLog.datetime_.desc(),
+            ).label("rn"),
         )
-        water_goals[pid] = goal_result.scalar_one_or_none()
+        .where(WaterLog.pet_id.in_(pet_ids), WaterLog.daily_goal_ml.isnot(None))
+        .subquery()
+    )
+    goal_result = await db.execute(
+        select(latest_goal_subq.c.pet_id, latest_goal_subq.c.daily_goal_ml)
+        .where(latest_goal_subq.c.rn == 1)
+    )
+    water_goals: dict[int, float | None] = {row[0]: row[1] for row in goal_result.all()}
 
     # 4. Upcoming events (all pets, limited to 5 per pet)
     events_result = await db.execute(
@@ -235,9 +250,11 @@ async def update_pet(
     current_user: User = Depends(get_current_user),
 ):
     pet = await get_pet_for_user(pet_id, current_user, db)
+    _PET_UPDATABLE = {"name", "species", "breed", "date_of_birth", "sex", "weight_kg", "photo_url", "notes"}
     try:
         for key, value in data.model_dump(exclude_unset=True).items():
-            setattr(pet, key, value)
+            if key in _PET_UPDATABLE:
+                setattr(pet, key, value)
         await db.commit()
         await db.refresh(pet)
         return _pet_out(pet)
@@ -281,8 +298,8 @@ async def pet_today(
 
     # Use user's timezone for "today" calculation
     try:
-        user_tz = ZoneInfo(current_user.timezone)
-    except Exception:
+        user_tz = ZoneInfo(current_user.timezone) if current_user.timezone else timezone.utc
+    except (KeyError, ValueError):
         user_tz = timezone.utc
     user_now = datetime.now(user_tz)
     user_today = user_now.date()

@@ -114,15 +114,22 @@ async def websocket_notifications(ws: WebSocket, token: str = Query(default=""))
         await ws.accept()
         try:
             raw = await asyncio.wait_for(ws.receive_text(), timeout=10.0)
-            msg = json.loads(raw)
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await ws.close(code=4001, reason="Invalid JSON message")
+                return
             if msg.get("type") == "auth" and msg.get("token"):
                 payload = _decode_jwt(msg["token"])
                 user_id = int(payload["sub"])
             else:
                 await ws.close(code=4001, reason="Expected auth message")
                 return
-        except Exception:
-            await ws.close(code=4001, reason="Auth failed")
+        except asyncio.TimeoutError:
+            await ws.close(code=4001, reason="Auth timeout")
+            return
+        except (ValueError, KeyError):
+            await ws.close(code=4001, reason="Invalid auth token")
             return
 
     async with async_session() as db:
@@ -229,8 +236,8 @@ async def _check_reminders():
             if not user:
                 continue
             try:
-                user_tz = ZoneInfo(user.timezone)
-            except Exception:
+                user_tz = ZoneInfo(user.timezone) if user.timezone else timezone.utc
+            except (KeyError, ValueError):
                 user_tz = timezone.utc
 
             user_now = now_utc.astimezone(user_tz)
