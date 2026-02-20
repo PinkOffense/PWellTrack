@@ -51,6 +51,15 @@ def _get_cors_origin(request: Request) -> str | None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting PWellTrack API")
+
+    # Validate secret key (only at API startup, not during alembic migrations)
+    if settings.has_insecure_secret:
+        logger.critical(
+            "FATAL: SECRET_KEY is set to the insecure default. "
+            "Set a strong SECRET_KEY environment variable in production."
+        )
+        raise SystemExit(1)
+
     # Create tables on startup (only needed for local dev with SQLite;
     # in production Alembic handles migrations).  If the database is
     # temporarily unreachable (e.g. Supabase free-tier waking up), retry
