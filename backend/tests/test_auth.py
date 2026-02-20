@@ -64,7 +64,23 @@ async def test_me_unauthorized(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_refresh(auth_client: AsyncClient):
-    resp = await auth_client.post("/auth/refresh")
+async def test_register_returns_refresh_token(client: AsyncClient):
+    resp = await client.post("/auth/register", json={
+        "name": "Refresh", "email": "refresh@test.com", "password": "secret123",
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert "refresh_token" in data
+
+
+@pytest.mark.asyncio
+async def test_refresh(client: AsyncClient):
+    reg = await client.post("/auth/register", json={
+        "name": "Eve", "email": "eve@test.com", "password": "secret123",
+    })
+    refresh_token = reg.json()["refresh_token"]
+    resp = await client.post("/auth/refresh", json={"refresh_token": refresh_token})
     assert resp.status_code == 200
-    assert "access_token" in resp.json()
+    data = resp.json()
+    assert "access_token" in data
+    assert "refresh_token" in data

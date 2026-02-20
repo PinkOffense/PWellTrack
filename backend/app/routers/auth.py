@@ -8,9 +8,16 @@ from slowapi.util import get_remote_address
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token, get_current_user
+from app.core.security import (
+    hash_password, verify_password,
+    create_access_token, create_refresh_token, _decode_jwt,
+    get_current_user,
+)
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, GoogleAuthRequest, PasswordChange
+from app.schemas.user import (
+    UserCreate, UserLogin, UserOut, TokenResponse,
+    GoogleAuthRequest, PasswordChange, RefreshRequest,
+)
 
 from pydantic import BaseModel as _BaseModel, Field
 from typing import Optional
@@ -27,6 +34,15 @@ class _ProfileUpdate(_BaseModel):
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _token_response(user: User) -> TokenResponse:
+    """Build a TokenResponse with both access and refresh tokens."""
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+        user=UserOut.model_validate(user),
+    )
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -50,8 +66,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
         raise HTTPException(status_code=400, detail="Email already registered")
     await db.refresh(user)
 
-    token = create_access_token(user.id)
-    return TokenResponse(access_token=token, user=UserOut.model_validate(user))
+    return _token_response(user)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -62,8 +77,7 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token = create_access_token(user.id)
-    return TokenResponse(access_token=token, user=UserOut.model_validate(user))
+    return _token_response(user)
 
 
 @router.post("/google", response_model=TokenResponse)
@@ -116,8 +130,7 @@ async def google_auth(request: Request, data: GoogleAuthRequest, db: AsyncSessio
         else:
             await db.refresh(user)
 
-    token = create_access_token(user.id)
-    return TokenResponse(access_token=token, user=UserOut.model_validate(user))
+    return _token_response(user)
 
 
 @router.get("/me", response_model=UserOut)
@@ -126,10 +139,19 @@ async def me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(current_user: User = Depends(get_current_user)):
-    """Issue a fresh token for an authenticated user."""
-    token = create_access_token(current_user.id)
-    return TokenResponse(access_token=token, user=UserOut.model_validate(current_user))
+async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    """Issue a new token pair from a valid refresh token."""
+    try:
+        payload = _decode_jwt(data.refresh_token, expected_type="refresh")
+        uid = int(payload["sub"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    user = await db.get(User, uid)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return _token_response(user)
 
 
 # ── Profile update ────────────────────────────────────────────────────────
@@ -203,10 +225,6 @@ async def change_password(
 
 
 # ── Delete account ───────────────────────────────────────────────────────
-
-class _DeleteConfirm(_BaseModel):
-    password: Optional[str] = None
-
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(

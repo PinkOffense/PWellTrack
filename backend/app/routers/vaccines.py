@@ -20,6 +20,8 @@ async def list_vaccines(
     pet_id: int,
     date_from: datetime | None = Query(None),
     date_to: datetime | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -29,7 +31,7 @@ async def list_vaccines(
         q = q.where(Vaccine.date_administered >= date_from)
     if date_to:
         q = q.where(Vaccine.date_administered <= date_to)
-    q = q.order_by(Vaccine.date_administered.desc())
+    q = q.order_by(Vaccine.date_administered.desc()).limit(limit).offset(offset)
     result = await db.execute(q)
     return [VaccineOut.model_validate(v) for v in result.scalars().all()]
 
