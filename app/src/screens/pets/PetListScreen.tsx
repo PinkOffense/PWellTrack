@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { petsApi, feedingApi, vaccinesApi, Pet, PetDashboard, Vaccine } from '../../api';
+import { petsApi, Pet, PetDashboard } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { ScreenContainer, Card, PetAvatar, EmptyState, GradientButton } from '../../components';
 import { colors, fontSize, spacing, borderRadius, shadows } from '../../theme';
@@ -29,22 +29,7 @@ function computeFeedingStatus(dashboard: PetDashboard): PetWithStatus['feedingSt
   return 'well_fed';
 }
 
-function computeVaccineStatus(vaccines: Vaccine[]): { status: PetWithStatus['vaccineStatus']; overdueCount: number } {
-  if (vaccines.length === 0) return { status: 'no_records', overdueCount: 0 };
-  const now = new Date();
-  const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  let overdueCount = 0;
-  let dueSoonCount = 0;
-  for (const v of vaccines) {
-    if (!v.next_due_date) continue;
-    const d = new Date(v.next_due_date);
-    if (d < now) overdueCount++;
-    else if (d <= thirtyDays) dueSoonCount++;
-  }
-  if (overdueCount > 0) return { status: 'overdue', overdueCount };
-  if (dueSoonCount > 0) return { status: 'due_soon', overdueCount: 0 };
-  return { status: 'up_to_date', overdueCount: 0 };
-}
+// Vaccine status now comes from the backend summary endpoint
 
 const FEEDING_BADGE: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
   not_fed: { icon: 'alert-circle', color: colors.danger, bg: colors.dangerLight },
@@ -77,29 +62,18 @@ export function PetListScreen({ navigation }: Props) {
     }
     lastFetchTime.current = now;
     try {
-      const data = await petsApi.list();
-      setPets(data);
-
-      // Fetch status for each pet in parallel
-      const statusPromises = data.map(async (pet) => {
-        try {
-          const [dashboard, vaccines] = await Promise.all([
-            petsApi.today(pet.id),
-            vaccinesApi.list(pet.id),
-          ]);
-          const feedingStatus = computeFeedingStatus(dashboard);
-          const { status: vaccineStatus, overdueCount } = computeVaccineStatus(vaccines);
-          return { id: pet.id, feedingStatus, vaccineStatus, overdueVaccineCount: overdueCount };
-        } catch {
-          return { id: pet.id, feedingStatus: undefined, vaccineStatus: undefined, overdueVaccineCount: 0 };
-        }
+      // Single API call replaces the old 2N+1 pattern
+      const summary = await petsApi.summary();
+      const enriched: PetWithStatus[] = summary.map(s => {
+        const feedingStatus = computeFeedingStatus(s.dashboard);
+        return {
+          ...s.pet,
+          feedingStatus,
+          vaccineStatus: s.vaccine_status.status,
+          overdueVaccineCount: s.vaccine_status.overdue_count,
+        };
       });
-
-      const statuses = await Promise.all(statusPromises);
-      setPets(prev => prev.map(pet => {
-        const s = statuses.find(x => x.id === pet.id);
-        return s ? { ...pet, feedingStatus: s.feedingStatus, vaccineStatus: s.vaccineStatus, overdueVaccineCount: s.overdueVaccineCount } : pet;
-      }));
+      setPets(enriched);
     } catch (e) {
       console.error(e);
     } finally {

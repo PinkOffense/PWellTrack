@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.schemas.event import EventOut
 from app.schemas.medication import MedicationOut
+from app.schemas.pet import PetOut
 
 
 class FeedingSummary(BaseModel):
@@ -22,3 +23,14 @@ class PetDashboard(BaseModel):
     water: WaterSummary
     upcoming_events: list[EventOut]
     active_medications: list[MedicationOut]
+
+
+class VaccineStatusSummary(BaseModel):
+    status: str  # up_to_date, due_soon, overdue, no_records
+    overdue_count: int
+
+
+class PetSummaryItem(BaseModel):
+    pet: PetOut
+    dashboard: PetDashboard
+    vaccine_status: VaccineStatusSummary

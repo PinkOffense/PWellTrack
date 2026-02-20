@@ -2,11 +2,11 @@ import { api, isDemoMode, uploadPetPhoto, tokenStorage } from './client';
 import {
   DEMO_TOKEN, DEMO_USER, DEMO_PETS, DEMO_FEEDING, DEMO_WATER,
   DEMO_VACCINES, DEMO_MEDICATIONS, DEMO_EVENTS, DEMO_SYMPTOMS,
-  getDemoDashboard,
+  getDemoDashboard, getDemoSummary,
 } from './demo-data';
 import type {
   TokenResponse, User,
-  Pet, PetCreate,
+  Pet, PetCreate, PetSummaryItem,
   FeedingLog, FeedingCreate,
   WaterLog, WaterCreate,
   Vaccine, VaccineCreate,
@@ -36,6 +36,8 @@ export const authApi = {
 export const petsApi = {
   list: (): Promise<Pet[]> =>
     isDemoMode() ? Promise.resolve(DEMO_PETS) : api.get('/pets/'),
+  summary: (): Promise<PetSummaryItem[]> =>
+    isDemoMode() ? Promise.resolve(getDemoSummary()) : api.get('/pets/summary'),
   create: (data: PetCreate): Promise<Pet> =>
     isDemoMode()
       ? Promise.resolve({ ...DEMO_PETS[0], ...data, id: Date.now() } as Pet)

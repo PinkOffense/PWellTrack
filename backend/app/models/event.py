@@ -13,7 +13,7 @@ class Event(Base):
     pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
     type: Mapped[str] = mapped_column(String(50))  # vet_visit, vaccine, grooming, other
     title: Mapped[str] = mapped_column(String(200))
-    datetime_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    datetime_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
