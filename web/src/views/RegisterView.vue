@@ -145,7 +145,6 @@ async function handleGoogle() {
       <div class="auth-divider"><span>{{ t('common.or') }}</span></div>
 
       <button
-        v-if="auth.googleAvailable"
         class="btn-google w-full"
         :disabled="googleLoading"
         @click="handleGoogle"
