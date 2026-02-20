@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const data = await res.json();
     await tokenStorage.set(data.access_token);
+    if (data.refresh_token) await tokenStorage.setRefresh(data.refresh_token);
     setToken(data.access_token);
     setUser(data.user);
   }, []);
@@ -99,7 +100,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const me = await authApi.me();
               setUser(me);
             } catch {
-              await tokenStorage.clear();
+              // Access token expired — try refresh
+              try {
+                const res = await authApi.refresh();
+                await tokenStorage.set(res.access_token);
+                if (res.refresh_token) await tokenStorage.setRefresh(res.refresh_token);
+                setToken(res.access_token);
+                setUser(res.user);
+              } catch {
+                await tokenStorage.clear();
+              }
             }
           }
         }
@@ -138,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const res = await authApi.login({ email, password });
     await tokenStorage.set(res.access_token);
+    if (res.refresh_token) await tokenStorage.setRefresh(res.refresh_token);
     setToken(res.access_token);
     setUser(res.user);
   }, []);
@@ -150,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const res = await authApi.register({ name, email, password });
     await tokenStorage.set(res.access_token);
+    if (res.refresh_token) await tokenStorage.setRefresh(res.refresh_token);
     setToken(res.access_token);
     setUser(res.user);
   }, []);

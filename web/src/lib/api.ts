@@ -10,6 +10,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ── Token storage ──
 let _token: string | null = null;
+let _refreshToken: string | null = null;
 
 export const tokenStorage = {
   get(): string | null {
@@ -27,8 +28,23 @@ export const tokenStorage = {
   },
   clear() {
     _token = null;
+    _refreshToken = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('pwelltrack_token');
+      localStorage.removeItem('pwelltrack_refresh_token');
+    }
+  },
+  getRefresh(): string | null {
+    if (_refreshToken) return _refreshToken;
+    if (typeof window !== 'undefined') {
+      _refreshToken = localStorage.getItem('pwelltrack_refresh_token');
+    }
+    return _refreshToken;
+  },
+  setRefresh(token: string) {
+    _refreshToken = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pwelltrack_refresh_token', token);
     }
   },
 };
@@ -98,8 +114,30 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         mode: 'cors',
       });
 
-      // SEC-05: Handle 401 Unauthorized — clear token and redirect to login
+      // SEC-05: Handle 401 Unauthorized — try refresh, then redirect to login
       if (res.status === 401) {
+        const rt = tokenStorage.getRefresh();
+        if (rt) {
+          try {
+            const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: rt }),
+            });
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              tokenStorage.set(data.access_token);
+              if (data.refresh_token) tokenStorage.setRefresh(data.refresh_token);
+              // Retry the original request with the new token
+              headers['Authorization'] = `Bearer ${data.access_token}`;
+              const retry = await fetch(url, { method, headers, body: jsonBody, signal: ctrl.signal, mode: 'cors' });
+              if (retry.ok) {
+                if (retry.status === 204) return undefined as unknown as T;
+                return retry.json();
+              }
+            }
+          } catch { /* refresh failed */ }
+        }
         tokenStorage.clear();
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
@@ -153,7 +191,11 @@ export const authApi = {
   login: (data: { email: string; password: string }) =>
     request<TokenResponse>('POST', '/auth/login', data),
   me: () => request<User>('GET', '/auth/me'),
-  refresh: () => request<TokenResponse>('POST', '/auth/refresh'),
+  refresh: () => {
+    const rt = tokenStorage.getRefresh();
+    if (!rt) return Promise.reject(new Error('No refresh token'));
+    return request<TokenResponse>('POST', '/auth/refresh', { refresh_token: rt });
+  },
   google: (data: { email: string; name: string; supabase_token: string }) =>
     request<TokenResponse>('POST', '/auth/google', data),
   /** Upload user photo — uploads to Supabase Storage or falls back to base64 */

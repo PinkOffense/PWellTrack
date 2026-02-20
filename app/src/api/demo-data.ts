@@ -19,6 +19,7 @@ export const DEMO_USER: User = {
 
 export const DEMO_TOKEN: TokenResponse = {
   access_token: 'demo-token',
+  refresh_token: 'demo-refresh-token',
   token_type: 'bearer',
   user: DEMO_USER,
 };
