@@ -116,21 +116,30 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
       // SEC-05: Handle 401 Unauthorized — try refresh, then redirect to login
       if (res.status === 401) {
+        clearTimeout(timer);
         const rt = tokenStorage.getRefresh();
         if (rt) {
           try {
+            const refreshCtrl = new AbortController();
+            const refreshTimer = setTimeout(() => refreshCtrl.abort(), REQUEST_TIMEOUT_MS);
             const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refresh_token: rt }),
+              signal: refreshCtrl.signal,
+              mode: 'cors',
             });
+            clearTimeout(refreshTimer);
             if (refreshRes.ok) {
               const data = await refreshRes.json();
               tokenStorage.set(data.access_token);
               if (data.refresh_token) tokenStorage.setRefresh(data.refresh_token);
-              // Retry the original request with the new token
-              headers['Authorization'] = `Bearer ${data.access_token}`;
-              const retry = await fetch(url, { method, headers, body: jsonBody, signal: ctrl.signal, mode: 'cors' });
+              // Retry the original request with a fresh controller
+              const retryCtrl = new AbortController();
+              const retryTimer = setTimeout(() => retryCtrl.abort(), REQUEST_TIMEOUT_MS);
+              const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
+              const retry = await fetch(url, { method, headers: retryHeaders, body: jsonBody, signal: retryCtrl.signal, mode: 'cors' });
+              clearTimeout(retryTimer);
               if (retry.ok) {
                 if (retry.status === 204) return undefined as unknown as T;
                 return retry.json();

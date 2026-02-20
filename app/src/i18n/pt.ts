@@ -58,6 +58,7 @@ export default {
     notes: 'Notas',
     photo: 'Foto',
     addPhoto: 'Adicionar Foto',
+    photoUploadFailed: 'Não foi possível guardar a foto. Pode adicioná-la depois.',
     dog: 'Cão',
     cat: 'Gato',
     exotic: 'Exótico',

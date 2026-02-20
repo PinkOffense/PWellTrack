@@ -79,6 +79,7 @@ export default {
     removePhoto: 'Remove Photo',
     addPhoto: 'Add Photo',
     photoHint: 'JPG, PNG up to 5 MB',
+    photoUploadFailed: 'Could not save the photo. You can add it later.',
     optional: 'optional',
     nameRequired: 'Give your pet a name',
     speciesRequired: 'Specify the species',
