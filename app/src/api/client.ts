@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { API_BASE_URL } from './config';
 
 let _token: string | null = null;
+let _refreshToken: string | null = null;
 let _demoMode = false;
 
 /** Returns true when the app is running without a backend (e.g. GitHub Pages). */
@@ -43,8 +44,21 @@ export const tokenStorage = {
   },
   async clear(): Promise<void> {
     _token = null;
+    _refreshToken = null;
     const storage = await getStorage();
     await storage.deleteItem('jwt_token');
+    await storage.deleteItem('jwt_refresh_token');
+  },
+  async getRefresh(): Promise<string | null> {
+    if (_refreshToken) return _refreshToken;
+    const storage = await getStorage();
+    _refreshToken = await storage.getItem('jwt_refresh_token');
+    return _refreshToken;
+  },
+  async setRefresh(token: string): Promise<void> {
+    _refreshToken = token;
+    const storage = await getStorage();
+    await storage.setItem('jwt_refresh_token', token);
   },
 };
 

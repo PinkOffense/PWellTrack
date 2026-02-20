@@ -1,4 +1,4 @@
-import { api, isDemoMode, uploadPetPhoto } from './client';
+import { api, isDemoMode, uploadPetPhoto, tokenStorage } from './client';
 import {
   DEMO_TOKEN, DEMO_USER, DEMO_PETS, DEMO_FEEDING, DEMO_WATER,
   DEMO_VACCINES, DEMO_MEDICATIONS, DEMO_EVENTS, DEMO_SYMPTOMS,
@@ -24,8 +24,12 @@ export const authApi = {
     isDemoMode() ? Promise.resolve(DEMO_TOKEN) : api.post('/auth/login', data),
   me: (): Promise<User> =>
     isDemoMode() ? Promise.resolve(DEMO_USER) : api.get('/auth/me'),
-  refresh: (): Promise<TokenResponse> =>
-    isDemoMode() ? Promise.resolve(DEMO_TOKEN) : api.post('/auth/refresh', {}),
+  refresh: async (): Promise<TokenResponse> => {
+    if (isDemoMode()) return DEMO_TOKEN;
+    const rt = await tokenStorage.getRefresh();
+    if (!rt) throw new Error('No refresh token');
+    return api.post('/auth/refresh', { refresh_token: rt });
+  },
 };
 
 // ── Pets ──

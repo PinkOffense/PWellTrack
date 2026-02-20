@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSupabaseUser = useCallback(async (supabaseToken: string, email: string, name: string) => {
     const res = await authApi.google({ email, name, supabase_token: supabaseToken });
     tokenStorage.set(res.access_token);
+    if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
     setUser(res.user);
   }, []);
 
@@ -54,7 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const me = await authApi.me();
             setUser(me);
           } catch {
-            tokenStorage.clear();
+            // Access token expired — try refresh
+            try {
+              const res = await authApi.refresh();
+              tokenStorage.set(res.access_token);
+              if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
+              setUser(res.user);
+            } catch {
+              tokenStorage.clear();
+            }
           }
         }
       }
@@ -88,12 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
     tokenStorage.set(res.access_token);
+    if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
     setUser(res.user);
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const res = await authApi.register({ name, email, password });
     tokenStorage.set(res.access_token);
+    if (res.refresh_token) tokenStorage.setRefresh(res.refresh_token);
     setUser(res.user);
   }, []);
 

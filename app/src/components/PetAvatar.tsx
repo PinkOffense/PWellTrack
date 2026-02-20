@@ -28,6 +28,11 @@ export function PetAvatar({ species, size = 56, photoUrl }: Props) {
   const icon = speciesIcon[species] ?? 'paw';
   const [photoError, setPhotoError] = React.useState(false);
 
+  // Reset error state when the photo URL changes
+  React.useEffect(() => {
+    setPhotoError(false);
+  }, [photoUrl]);
+
   if (photoUrl && !photoError) {
     return (
       <Image
