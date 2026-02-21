@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Mail, Lock, Eye, EyeOff, PawPrint } from 'lucide-vue-next';
@@ -11,6 +11,12 @@ const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 const toast = useToastStore();
+
+// Navigate to /pets as soon as the user becomes authenticated
+// (covers Google OAuth redirect, onAuthStateChange, etc.)
+watch(() => auth.user, (u) => {
+  if (u) router.replace('/pets');
+});
 
 const email = ref('');
 const password = ref('');
